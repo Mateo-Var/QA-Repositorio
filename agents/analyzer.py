@@ -1,0 +1,146 @@
+"""
+Agente 1 — Analizador
+
+Responsabilidad:
+- Recibe triggers (PR diff, webhook, schedule).
+- Analiza qué cambió y decide qué tests ejecutar o generar.
+- Construye el JSON de input para el Agente 2.
+- NO ejecuta tests. NO genera código. Solo decide y delega.
+- Una sola llamada a la API de Claude por ejecución.
+"""
+
+import json
+import os
+import sys
+from pathlib import Path
+from datetime import datetime, timezone
+
+import anthropic
+
+ROOT = Path(__file__).parent.parent
+SCHEMA_PATH = ROOT / "schemas" / "agent_contract.json"
+PROMPT_PATH = ROOT / "prompts" / "agent1_analyzer.md"
+
+
+def app_dir(app_id: str) -> Path:
+    return ROOT / "apps" / app_id
+
+
+def load_compressed_session_log(app_id: str) -> str:
+    """Lee solo el resumen comprimido del session_log (máx ~500 tokens)."""
+    path = app_dir(app_id) / "session_log.json"
+    with open(path) as f:
+        data = json.load(f)
+    summary = data.get("summary")
+    if not summary:
+        return "No hay sesiones previas."
+    return summary
+
+
+def load_app_context(app_id: str) -> str:
+    path = app_dir(app_id) / "app_context.md"
+    return path.read_text() if path.exists() else ""
+
+
+def load_dod_rules(app_id: str) -> str:
+    path = app_dir(app_id) / "dod_rules.py"
+    return path.read_text() if path.exists() else ""
+
+
+def load_skills(app_id: str) -> str:
+    skills_dir = app_dir(app_id) / "skills"
+    if not skills_dir.exists():
+        return ""
+    parts = []
+    for md in sorted(skills_dir.glob("*.md")):
+        parts.append(f"### {md.stem}\n{md.read_text()}")
+    return "\n\n".join(parts)
+
+
+def load_prompt() -> str:
+    with open(PROMPT_PATH) as f:
+        return f.read()
+
+
+def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
+    session_summary = load_compressed_session_log(app_id)
+    app_context = load_app_context(app_id)
+    dod_rules = load_dod_rules(app_id)
+    skills = load_skills(app_id)
+    return f"""## App
+{app_id}
+
+## Trigger
+{json.dumps(trigger, indent=2)}
+
+## Diff del cambio
+```
+{diff}
+```
+
+## Contexto de la app
+{app_context}
+
+## DOD Rules
+```python
+{dod_rules}
+```
+
+## Skills
+{skills}
+
+## Contexto de sesión (comprimido)
+{session_summary}
+"""
+
+
+def call_claude(trigger: dict, diff: str, app_id: str) -> dict:
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    system_prompt = load_prompt()
+    user_message = build_user_message(trigger, diff, app_id)
+
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=2048,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+
+    raw = response.content[0].text
+    return json.loads(raw)
+
+
+def validate_output(output: dict) -> None:
+    with open(SCHEMA_PATH) as f:
+        schema = json.load(f)
+    # Validación básica de campos obligatorios
+    required = schema.get("required", [])
+    for field in required:
+        if field not in output:
+            raise ValueError(f"Campo requerido ausente en output del agente: {field}")
+
+
+def run(trigger: dict, diff: str, app_id: str) -> dict:
+    output = call_claude(trigger, diff, app_id)
+    validate_output(output)
+    output["app_id"] = app_id
+    output["_meta"] = {
+        "agent": "analyzer",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "trigger_type": trigger.get("type"),
+    }
+    return output
+
+
+if __name__ == "__main__":
+    # Uso: python agents/analyzer.py trigger.json diff.txt
+    # APP_ID debe estar definido como variable de entorno
+    app_id = os.environ["APP_ID"]
+    trigger_path = sys.argv[1] if len(sys.argv) > 1 else None
+    diff_path = sys.argv[2] if len(sys.argv) > 2 else None
+
+    trigger = json.loads(Path(trigger_path).read_text()) if trigger_path else {"type": "manual"}
+    diff = Path(diff_path).read_text() if diff_path else ""
+
+    result = run(trigger, diff, app_id)
+    print(json.dumps(result, indent=2))

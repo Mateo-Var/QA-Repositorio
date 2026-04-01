@@ -1,0 +1,80 @@
+name: QA Agent
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: "0 3 * * *"  # Nightly a las 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  qa-agent:
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start Appium
+        run: |
+          npm install -g appium@2
+          appium driver install xcuitest
+          appium &
+          sleep 5
+
+      - name: Run QA Agent (PR)
+        if: github.event_name == 'pull_request'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APPIUM_SERVER_URL: http://localhost:4723
+          APP_BUNDLE_ID: ${{ secrets.APP_BUNDLE_ID }}
+          APP_PATH: ${{ secrets.APP_PATH }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          QA_RUN_ID: "pr${{ github.event.pull_request.number }}_${{ github.run_id }}"
+        run: |
+          chmod +x scripts/run_on_pr.sh
+          ./scripts/run_on_pr.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
+      - name: Run QA Agent (Nightly)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APPIUM_SERVER_URL: http://localhost:4723
+          APP_BUNDLE_ID: ${{ secrets.APP_BUNDLE_ID }}
+          APP_PATH: ${{ secrets.APP_PATH }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+        run: |
+          chmod +x scripts/run_scheduled.sh
+          ./scripts/run_scheduled.sh
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+
+      - name: Notify Slack on DOD failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"text": "QA Agent: DOD test failure in run ${{ github.run_id }}"}'

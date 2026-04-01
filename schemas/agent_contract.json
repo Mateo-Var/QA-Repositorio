@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa-agent/schemas/agent_contract.json",
+  "title": "QA Agent Contract",
+  "description": "Contrato de comunicación entre Agente 1 (Analizador) y Agente 2 (Gen/Exec). Versión 1.0.",
+
+  "definitions": {
+
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[0-9]{6}$",
+      "description": "Formato YYYYMMDD-HHMMSS. Generado por el Agente 1, propagado al Agente 2."
+    },
+
+    "trigger_type": {
+      "type": "string",
+      "description": "Origen del run. Valores posibles: pr_change, scheduled, manual."
+    },
+
+    "risk_level": {
+      "type": "string",
+      "description": "Clasificación de riesgo. Valores posibles: CRITICO, ALTO, MEDIO, BAJO, SKIP."
+    },
+
+    "reasoning": {
+      "type": "object",
+      "description": "Lógica de decisión del Agente 1. Se persiste en session_log.json.",
+      "required": ["files_analyzed", "flows_affected", "risk_justification"],
+      "additionalProperties": false,
+      "properties": {
+        "files_analyzed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Archivos del diff que fueron considerados en el análisis."
+        },
+        "flows_affected": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Flujos de usuario impactados por los cambios."
+        },
+        "risk_justification": {
+          "type": "string",
+          "description": "Explicación en lenguaje natural de por qué se asignó ese nivel de riesgo."
+        },
+        "history_flags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Observaciones del historial de fallos relevantes para este análisis.",
+          "default": []
+        }
+      }
+    },
+
+    "execute_request": {
+      "type": "object",
+      "description": "Instrucción para ejecutar tests existentes.",
+      "required": ["test_files", "dod_tests", "devices", "priority_order", "time_budget_minutes"],
+      "additionalProperties": false,
+      "properties": {
+        "test_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Rutas a los archivos de test a ejecutar."
+        },
+        "dod_tests": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Nombres de tests DOD a correr primero. Si alguno falla, el run se detiene."
+        },
+        "devices": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Lista de device keys definidos en tests/fixtures/devices.py. Múltiples = ejecución paralela."
+        },
+        "priority_order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Orden de ejecución. dod_tests siempre debe ser el primer elemento."
+        },
+        "time_budget_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Tiempo máximo total del run. En nightly puede ser alto. En PR máximo 15."
+        },
+        "record_video": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, graba video del run completo. Se activa automáticamente si hay más de 5 tests."
+        }
+      }
+    },
+
+    "generate_flow": {
+      "type": "object",
+      "description": "Instrucción para generar tests de un flujo específico.",
+      "required": ["flow", "reason", "scenarios", "device_targets"],
+      "additionalProperties": false,
+      "properties": {
+        "flow": {
+          "type": "string",
+          "description": "Identificador del flujo. Ej: login_sso, reproductor_video, busqueda."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Por qué se necesitan tests nuevos para este flujo."
+        },
+        "scenarios": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Escenarios a cubrir. Ej: happy_path, token_expirado, sin_conexion."
+        },
+        "device_targets": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Devices para los que se generan los tests."
+        },
+        "replace_existing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, los tests generados reemplazan el archivo existente."
+        },
+        "existing_file": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Ruta al archivo existente. Requerido si replace_existing es true."
+        }
+      }
+    },
+
+    "generate_request": {
+      "type": "object",
+      "description": "Instrucción para generar uno o más conjuntos de tests.",
+      "required": ["flows"],
+      "additionalProperties": false,
+      "properties": {
+        "flows": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/generate_flow" },
+          "minItems": 1
+        }
+      }
+    },
+
+    "decision": {
+      "type": ["object", "null"],
+      "description": "Null solo cuando risk_level es SKIP.",
+      "additionalProperties": false,
+      "properties": {
+        "execute": {
+          "$ref": "#/definitions/execute_request"
+        },
+        "generate": {
+          "$ref": "#/definitions/generate_request"
+        }
+      },
+      "description": "Puede contener execute, generate, o ambos simultáneamente."
+    },
+
+    "agent1_knowledge_update": {
+      "type": ["object", "null"],
+      "description": "Observaciones del Agente 1 para persistir en session_log.json.",
+      "additionalProperties": false,
+      "properties": {
+        "observation": {
+          "type": "string",
+          "description": "Patrón o anomalía detectada en este análisis."
+        },
+        "suggested_dod_review": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, compress_context.py notifica a Slack para revisión humana del DOD."
+        }
+      }
+    },
+
+    "agent2_generate_result": {
+      "type": "object",
+      "description": "Resultado del Agente 2 en modo generate.",
+      "required": ["files_generated"],
+      "additionalProperties": false,
+      "properties": {
+        "files_generated": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path", "tests_count", "scenarios_covered", "page_objects_needed"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "tests_count": { "type": "integer", "minimum": 1 },
+              "scenarios_covered": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "page_objects_needed": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "agent2_execute_result": {
+      "type": "object",
+      "description": "Resultado del Agente 2 en modo execute.",
+      "required": ["device", "duration_seconds", "summary", "dod_status"],
+      "additionalProperties": false,
+      "properties": {
+        "device": { "type": "string" },
+        "duration_seconds": { "type": "integer", "minimum": 0 },
+        "summary": {
+          "type": "object",
+          "required": ["total", "passed", "failed", "skipped"],
+          "additionalProperties": false,
+          "properties": {
+            "total":   { "type": "integer", "minimum": 0 },
+            "passed":  { "type": "integer", "minimum": 0 },
+            "failed":  { "type": "integer", "minimum": 0 },
+            "skipped": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "dod_status": {
+          "type": "string",
+          "description": "passed o failed."
+        },
+        "dod_violations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["test", "error"],
+            "additionalProperties": false,
+            "properties": {
+              "test":       { "type": "string" },
+              "error":      { "type": "string" },
+              "screenshot": { "type": ["string", "null"], "default": null },
+              "video":      { "type": ["string", "null"], "default": null },
+              "timing": {
+                "type": ["object", "null"],
+                "additionalProperties": false,
+                "properties": {
+                  "action":     { "type": "string" },
+                  "elapsed_ms": { "type": "integer" }
+                }
+              }
+            }
+          },
+          "default": []
+        },
+        "timings": {
+          "type": "object",
+          "description": "Tiempos de acciones clave medidos durante el run.",
+          "additionalProperties": { "type": "integer" }
+        }
+      }
+    },
+
+    "agent2_knowledge_update": {
+      "type": ["object", "null"],
+      "description": "Lo que el Agente 2 aprendió. Se escribe directo en session_log.json.",
+      "additionalProperties": false,
+      "properties": {
+        "session_learning": {
+          "type": "string",
+          "description": "Observación concreta aprendida en este run."
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Identificador corto del patrón. Ej: pin_input_delay_simulator."
+        },
+        "suggested_dod_review": {
+          "type": "boolean",
+          "default": false,
+          "description": "Si true, compress_context.py notifica a Slack para revisión humana del DOD."
+        }
+      }
+    }
+  },
+
+  "oneOf": [
+
+    {
+      "title": "Contrato de salida — Agente 1 hacia Agente 2",
+      "type": "object",
+      "required": ["agent", "app_id", "run_id", "trigger", "risk_level", "reasoning"],
+      "additionalProperties": false,
+      "properties": {
+        "agent":              { "const": "analyzer" },
+        "app_id":             { "type": "string", "description": "Identificador del workspace de la app. Ej: app_streaming_mx. Determina qué contexto, DOD y tests cargar." },
+        "run_id":             { "$ref": "#/definitions/run_id" },
+        "trigger":            { "$ref": "#/definitions/trigger_type" },
+        "risk_level":         { "$ref": "#/definitions/risk_level" },
+        "reasoning":          { "$ref": "#/definitions/reasoning" },
+        "decision":           { "$ref": "#/definitions/decision" },
+        "skip_justification": { "type": ["string", "null"], "default": null },
+        "knowledge_update":   { "$ref": "#/definitions/agent1_knowledge_update" }
+      }
+    },
+
+    {
+      "title": "Contrato de salida — Agente 2 hacia el sistema",
+      "type": "object",
+      "required": ["agent", "app_id", "run_id", "mode"],
+      "additionalProperties": false,
+      "properties": {
+        "agent":            { "const": "generator_executor" },
+        "app_id":           { "type": "string", "description": "Identificador del workspace de la app. Propagado desde el output del Agente 1." },
+        "run_id":           { "$ref": "#/definitions/run_id" },
+        "mode":             { "type": "string", "description": "generate, execute, o both." },
+        "generate_result":  { "$ref": "#/definitions/agent2_generate_result" },
+        "execute_results": {
+          "type": "array",
+          "description": "Un resultado por device. Múltiples cuando se corrió en paralelo.",
+          "items": { "$ref": "#/definitions/agent2_execute_result" }
+        },
+        "knowledge_update": { "$ref": "#/definitions/agent2_knowledge_update" }
+      }
+    }
+
+  ]
+}

@@ -1,0 +1,134 @@
+"""
+scripts/update_claude_md.py
+
+Sobreescribe la sección [AUTO] del CLAUDE.md con el estado
+actual del session_log.json.
+
+Llamado internamente por compress_context.py — no corre solo.
+Si necesitas forzar una actualización manual:
+    python scripts/update_claude_md.py
+"""
+
+import json
+import logging
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+
+log = logging.getLogger(__name__)
+
+ROOT      = Path(__file__).parent.parent
+CLAUDE_MD = ROOT / "CLAUDE.md"
+SESSION_LOG = ROOT / "knowledge" / "session_log.json"
+
+AUTO_START = "## [AUTO] Contexto de sesión"
+AUTO_END   = "```"  # cierre del bloque json de la sección AUTO
+
+
+def build_auto_block(log_data: dict) -> str:
+    entries: list = log_data.get("entries", [])
+
+    # Últimos 5 aprendizajes para mantener el bloque liviano
+    recent = entries[-5:] if len(entries) > 5 else entries
+
+    learned_patterns = [
+        e["pattern"] for e in recent
+        if e.get("pattern")
+    ]
+
+    # Tiempos de referencia: promedio de los últimos runs por métrica
+    timing_keys = set()
+    for e in recent:
+        for device_timings in e.get("timings_by_device", {}).values():
+            timing_keys.update(device_timings.keys())
+
+    timing_baselines = {}
+    for key in timing_keys:
+        values = [
+            v
+            for e in recent
+            for device_timings in e.get("timings_by_device", {}).values()
+            for k, v in device_timings.items()
+            if k == key
+        ]
+        if values:
+            timing_baselines[key] = round(sum(values) / len(values))
+
+    last_dod = next(
+        (e["dod_status"] for e in reversed(entries) if e.get("dod_status")),
+        None
+    )
+
+    state = {
+        "last_run":              log_data.get("last_run"),
+        "last_run_date":         log_data.get("last_updated"),
+        "dod_status":            last_dod,
+        "recurring_failures":    [],
+        "learned_patterns":      learned_patterns,
+        "timing_baselines":      timing_baselines,
+        "total_runs":            log_data.get("total_runs", 0),
+        "total_tests_generated": log_data.get("total_tests_generated", 0),
+        "recent_learnings": [
+            {"date": e["date"], "learning": e["learning"]}
+            for e in recent
+        ]
+    }
+
+    block = (
+        f"{AUTO_START}\n\n"
+        f"> Esta sección es generada y sobreescrita automáticamente por scripts/update_claude_md.py\n"
+        f"> No editar manualmente.\n"
+        f"> Última actualización: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+        f"```json\n"
+        f"{json.dumps(state, indent=2, ensure_ascii=False)}\n"
+        f"```"
+    )
+    return block
+
+
+def run(log_data: dict | None = None, dry_run: bool = False) -> None:
+    if not CLAUDE_MD.exists():
+        raise FileNotFoundError(f"No se encontró CLAUDE.md en {CLAUDE_MD}")
+
+    if log_data is None:
+        if not SESSION_LOG.exists():
+            raise FileNotFoundError(f"No se encontró session_log.json en {SESSION_LOG}")
+        with open(SESSION_LOG) as f:
+            log_data = json.load(f)
+
+    content = CLAUDE_MD.read_text(encoding="utf-8")
+
+    # Encuentra la sección [AUTO] completa usando regex
+    # Captura desde el header hasta el cierre del bloque ```
+    pattern = re.compile(
+        rf"^{re.escape(AUTO_START)}.*?^```",
+        re.MULTILINE | re.DOTALL
+    )
+
+    new_block = build_auto_block(log_data)
+
+    if not pattern.search(content):
+        raise ValueError(
+            f"No se encontró la sección '{AUTO_START}' en CLAUDE.md. "
+            f"Verifica que el marcador esté presente."
+        )
+
+    updated = pattern.sub(new_block, content)
+
+    if dry_run:
+        log.info("[dry-run] CLAUDE.md no fue modificado. Bloque que se escribiría:")
+        log.info(new_block)
+        return
+
+    CLAUDE_MD.write_text(updated, encoding="utf-8")
+    log.info(f"CLAUDE.md actualizado — sección [AUTO] sobreescrita")
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Actualiza sección [AUTO] del CLAUDE.md")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s — %(message)s")
+    run(dry_run=args.dry_run)
