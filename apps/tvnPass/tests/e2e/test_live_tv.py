@@ -41,9 +41,19 @@ class TestLiveTV:
 
         assert live.is_player_open(timeout=10), "El player no se abrió"
 
-        # El EPG no tiene botón VOLVER — se usa el tab bar
+        # El EPG no tiene botón VOLVER — se usa el tab bar.
+        # tap_explorar puede activar PiP; si ocurre, lo cerramos antes de verificar.
+        from appium.webdriver.common.appiumby import AppiumBy
         home = HomePage(driver)
         home.tap_explorar()
+
+        # Cerrar PiP si iOS lo activó al salir del player
+        try:
+            pip_btn = driver.find_element(AppiumBy.ACCESSIBILITY_ID, "Stop Picture in Picture")
+            pip_btn.click()
+            import time; time.sleep(1)
+        except Exception:
+            pass
 
         explorar = ExplorarPage(driver)
         assert explorar.is_loaded(timeout=5), "No volvió a Explorar desde el player"

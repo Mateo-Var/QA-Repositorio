@@ -11,6 +11,7 @@ Responsabilidad:
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
@@ -47,13 +48,54 @@ def load_dod_rules(app_id: str) -> str:
     return path.read_text() if path.exists() else ""
 
 
-def load_skills(app_id: str) -> str:
+# Mapeo de palabras clave en el diff → skills relevantes.
+# Si el diff no contiene ninguna keyword de una skill, esa skill no se carga.
+# Esto reduce el contexto enviado a Claude en ~60% para PRs focalizados.
+_SKILL_KEYWORDS: dict[str, list[str]] = {
+    "geo_rules":           ["geo", "location", "region", "country", "latam", "panama"],
+    "ads_behavior":        ["ad", "ads", "advertising", "ima", "vast", "player", "video"],
+    "subscription_states": ["subscription", "premium", "paywall", "purchase", "plan", "billing"],
+    "offline_patterns":    ["offline", "network", "connectivity", "reachability", "no_connection"],
+    "content_risk_matrix": ["content", "catalog", "rating", "age", "parental", "risk"],
+}
+
+
+def _infer_relevant_skills(diff: str) -> set[str] | None:
+    """
+    Infiere qué skills son relevantes a partir del diff.
+    Retorna None si el diff está vacío → cargar todas (scheduled run, manual).
+    Retorna set vacío si hay diff pero ninguna skill aplica → cargar todas igualmente
+    para no perder contexto en casos ambiguos.
+    """
+    if not diff.strip():
+        return None
+    diff_lower = diff.lower()
+    relevant = {
+        skill for skill, keywords in _SKILL_KEYWORDS.items()
+        if any(re.search(r'\b' + re.escape(kw) + r'\b', diff_lower) for kw in keywords)
+    }
+    # Si ninguna skill matchea, cargar todas (más seguro que cargar ninguna)
+    return relevant if relevant else None
+
+
+def load_skills(app_id: str, diff: str = "") -> str:
     skills_dir = app_dir(app_id) / "skills"
     if not skills_dir.exists():
         return ""
+
+    relevant = _infer_relevant_skills(diff)
     parts = []
+    skipped = []
     for md in sorted(skills_dir.glob("*.md")):
-        parts.append(f"### {md.stem}\n{md.read_text()}")
+        if relevant is None or md.stem in relevant:
+            parts.append(f"### {md.stem}\n{md.read_text()}")
+        else:
+            skipped.append(md.stem)
+
+    if skipped:
+        # Informar al modelo qué skills existen pero no se cargaron
+        header = f"<!-- Skills no cargadas (no relevantes para este diff): {', '.join(skipped)} -->\n\n"
+        return header + "\n\n".join(parts)
     return "\n\n".join(parts)
 
 
@@ -66,7 +108,7 @@ def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
     session_summary = load_compressed_session_log(app_id)
     app_context = load_app_context(app_id)
     dod_rules = load_dod_rules(app_id)
-    skills = load_skills(app_id)
+    skills = load_skills(app_id, diff=diff)  # carga selectiva basada en el diff
     return f"""## App
 {app_id}
 

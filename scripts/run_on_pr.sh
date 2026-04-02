@@ -18,12 +18,55 @@ echo "=== QA Agent — PR #${PR_NUMBER} ==="
 echo "Base: ${BASE_SHA} → Head: ${HEAD_SHA}"
 echo "Run ID: ${RUN_ID}"
 
-# 1. Generar diff del PR
+# ── Pre-filtro: saltar si solo cambiaron archivos no relevantes ───────────────
+# Evita gastar una llamada al Agente 1 para PRs de docs, configs, README, etc.
+CHANGED_FILES=$(git diff --name-only "${BASE_SHA}..${HEAD_SHA}")
+echo "Archivos cambiados:"
+echo "$CHANGED_FILES"
+
+# Patrones de archivos que NO disparan QA
+SKIP_PATTERNS=(
+  "^README"
+  "^docs/"
+  "^\.github/"
+  "^\.gitignore"
+  "^.*\.md$"
+  "^.*\.txt$"
+  "^.*\.png$"
+  "^.*\.jpg$"
+  "^.*\.svg$"
+  "^CHANGELOG"
+  "^LICENSE"
+)
+
+RELEVANT=false
+while IFS= read -r file; do
+  skip=false
+  for pattern in "${SKIP_PATTERNS[@]}"; do
+    if echo "$file" | grep -qE "$pattern"; then
+      skip=true
+      break
+    fi
+  done
+  if [ "$skip" = false ]; then
+    RELEVANT=true
+    break
+  fi
+done <<< "$CHANGED_FILES"
+
+if [ "$RELEVANT" = false ]; then
+  echo "--- Pre-filtro: solo cambios en docs/assets. Skipping QA run."
+  exit 0
+fi
+
+echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA..."
+
+# ── 1. Generar diff del PR ────────────────────────────────────────────────────
 DIFF_FILE="/tmp/qa_diff_${RUN_ID}.txt"
 git diff "${BASE_SHA}..${HEAD_SHA}" > "$DIFF_FILE"
 echo "Diff generado: $(wc -l < "$DIFF_FILE") líneas"
 
-# 2. Construir trigger JSON
+# ── 2. Construir trigger JSON ─────────────────────────────────────────────────
 TRIGGER_FILE="/tmp/qa_trigger_${RUN_ID}.json"
 cat > "$TRIGGER_FILE" <<EOF
 {
@@ -31,32 +74,38 @@ cat > "$TRIGGER_FILE" <<EOF
   "pr_number": ${PR_NUMBER},
   "base_sha": "${BASE_SHA}",
   "head_sha": "${HEAD_SHA}",
-  "run_id": "${RUN_ID}"
+  "run_id": "${RUN_ID}",
+  "changed_files": $(echo "$CHANGED_FILES" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip().splitlines()))")
 }
 EOF
 
-# 3. Ejecutar Agente 1 (Analizador)
+# ── 3. Ejecutar Agente 1 (Analizador) ────────────────────────────────────────
 echo "--- Agente 1: Analizando cambios..."
 AGENT1_OUTPUT="/tmp/qa_agent1_output_${RUN_ID}.json"
 cd "$ROOT"
-python agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
+APP_ID="${APP_ID:?APP_ID requerido}" python agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
 echo "Agente 1 completado."
 
-# 4. Ejecutar Agente 2 (Generador/Ejecutor)
+# ── 4. Ejecutar Agente 2 (Generador/Ejecutor) ────────────────────────────────
 echo "--- Agente 2: Ejecutando..."
 AGENT2_OUTPUT="/tmp/qa_agent2_output_${RUN_ID}.json"
 python agents/generator_executor.py "$AGENT1_OUTPUT" > "$AGENT2_OUTPUT"
 echo "Agente 2 completado."
 
-# 5. Comprimir contexto para la próxima sesión
+# ── 5. Comprimir contexto para la próxima sesión ─────────────────────────────
 echo "--- Comprimiendo contexto..."
-python scripts/compress_context.py "$AGENT2_OUTPUT"
+APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT"
 
-# 6. Verificar DOD status
-DOD_STATUS=$(python -c "
+# ── 6. Verificar DOD status ───────────────────────────────────────────────────
+DOD_STATUS=$(python3 -c "
 import json, sys
 data = json.load(open('$AGENT2_OUTPUT'))
-print(data.get('dod_status', 'unknown'))
+results = data.get('execute_results', [])
+if not results:
+    print('unknown')
+else:
+    statuses = [r.get('dod_status', 'unknown') for r in results]
+    print('failed' if 'failed' in statuses else 'passed')
 ")
 
 echo "DOD Status: ${DOD_STATUS}"

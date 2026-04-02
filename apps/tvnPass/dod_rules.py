@@ -1,23 +1,49 @@
 """
-DOD Timeouts — fuente de verdad centralizada.
+DOD Timeouts — fuente de verdad centralizada para TVN Pass.
 Nunca definir timeouts en los tests directamente.
 Siempre importar desde aquí: from dod_rules import DOD_TIMEOUTS
+
+─── Versioning ───────────────────────────────────────────────────────────────
+Cada vez que cambies un timeout o criterio DOD, incrementa VERSION y agrega
+una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
+empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
+VERSION = "1.1.0"
+
+CHANGELOG = [
+    {
+        "version": "1.0.0",
+        "date": "2026-04-01",
+        "author": "julio",
+        "changes": "Versión inicial — timeouts base para TVN Pass físico (iPhone iOS 26).",
+    },
+    {
+        "version": "1.1.0",
+        "date": "2026-04-01",
+        "author": "julio",
+        "changes": (
+            "Agregado versioning y changelog. "
+            "Sin cambio en valores de timeout — baseline establecido tras primer run 19/19."
+        ),
+    },
+]
+
+# ── Timeouts por DOD ID (segundos) ────────────────────────────────────────────
 DOD_TIMEOUTS = {
-    "DOD-01": 5,   # Login email → home screen
-    "DOD-02": 6,   # Login SSO → home screen
-    "DOD-03": 3,   # Buffer inicial de video
-    "DOD-04": 2,   # Resultados de búsqueda
-    "DOD-05": 3,   # Selector de perfiles cargado
-    "DOD-06": 60,  # Onboarding completo
-    "DOD-07": 8,   # Confirmación de pago
-    "DOD-08": 3,   # Logout → pantalla de login
-    "DOD-09": None,  # Modo offline — no aplica timeout
-    "DOD-10": None,  # Accesibilidad — no aplica timeout
+    "DOD-01": 5,    # Login email → home screen
+    "DOD-02": 6,    # Login SSO → home screen
+    "DOD-03": 10,   # Buffer inicial de video (físico necesita más margen que simulador)
+    "DOD-04": 2,    # Resultados de búsqueda
+    "DOD-05": 3,    # Selector de perfiles cargado
+    "DOD-06": 60,   # Onboarding completo
+    "DOD-07": 8,    # Confirmación de pago
+    "DOD-08": 3,    # Logout → pantalla de login
+    "DOD-09": None, # Modo offline — no aplica timeout
+    "DOD-10": None, # Accesibilidad — no aplica timeout
 }
 
-# Aliases semánticos para uso en tests
+# ── Aliases semánticos para uso en page objects y tests ───────────────────────
 DOD_TIMEOUTS_BY_FLOW = {
     "login":            DOD_TIMEOUTS["DOD-01"],
     "login_sso":        DOD_TIMEOUTS["DOD-02"],

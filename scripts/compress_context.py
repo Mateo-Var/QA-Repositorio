@@ -2,7 +2,7 @@
 compress_context.py — Optimizador de tokens
 
 Lee el output del Agente 2, extrae los aprendizajes relevantes,
-y actualiza knowledge/session_log.json con un resumen comprimido.
+y actualiza apps/{app_id}/session_log.json con un resumen comprimido.
 
 El resumen nunca supera los 500 tokens para no saturar el contexto
 del Agente 1 en la próxima sesión.
@@ -10,20 +10,19 @@ del Agente 1 en la próxima sesión.
 Uso:
     python scripts/compress_context.py <agent2_output.json>
     python scripts/compress_context.py  # lee de stdin
+    APP_ID debe estar definido como variable de entorno.
 """
 
 import json
 import os
 import sys
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
 import anthropic
 
 ROOT = Path(__file__).parent.parent
-SESSION_LOG_PATH = ROOT / "knowledge" / "session_log.json"
-FAILED_TESTS_PATH = ROOT / "knowledge" / "failed_tests.json"
-CLAUDE_MD_PATH = ROOT / "CLAUDE.md"
 
 COMPRESS_PROMPT = """Eres un optimizador de contexto para un sistema de QA automatizado.
 Recibirás el resultado de un run de tests. Tu tarea es extraer solo la información
@@ -45,6 +44,39 @@ Devuelve solo un JSON con esta estructura:
 """
 
 
+def _app_dir(app_id: str) -> Path:
+    return ROOT / "apps" / app_id
+
+
+def _session_log_path(app_id: str) -> Path:
+    return _app_dir(app_id) / "session_log.json"
+
+
+def _failed_tests_path(app_id: str) -> Path:
+    return _app_dir(app_id) / "failed_tests_history.json"
+
+
+def _backup_session_log(app_id: str) -> None:
+    """
+    Guarda copias rotativas de las últimas 3 versiones del session_log
+    antes de sobreescribirlo. Previene pérdida total por kill -9 o disco lleno.
+
+    Genera: session_log.1.json, session_log.2.json, session_log.3.json
+    (1 = más reciente, 3 = más antigua)
+    """
+    path = _session_log_path(app_id)
+    if not path.exists():
+        return
+
+    backup_dir = _app_dir(app_id)
+    # Rotar: 2→3, 1→2, actual→1
+    for i in (3, 2, 1):
+        older = backup_dir / f"session_log.{i}.json"
+        newer = backup_dir / f"session_log.{i - 1}.json" if i > 1 else path
+        if newer.exists():
+            shutil.copy2(newer, older)
+
+
 def compress(agent2_output: dict) -> dict:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     response = client.messages.create(
@@ -56,9 +88,17 @@ def compress(agent2_output: dict) -> dict:
     return json.loads(response.content[0].text)
 
 
-def update_session_log(compressed: dict) -> None:
-    with open(SESSION_LOG_PATH) as f:
-        log = json.load(f)
+def update_session_log(app_id: str, compressed: dict) -> None:
+    path = _session_log_path(app_id)
+
+    # Backup rotativo ANTES de sobreescribir
+    _backup_session_log(app_id)
+
+    if path.exists():
+        with open(path) as f:
+            log = json.load(f)
+    else:
+        log = {"sessions": [], "summary": None, "version": 0}
 
     session_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -73,17 +113,22 @@ def update_session_log(compressed: dict) -> None:
     log["summary"] = compressed.get("summary")
     log["version"] = log.get("version", 1) + 1
 
-    # Mantener solo las últimas 20 sesiones para controlar el tamaño
+    # Mantener solo las últimas 20 sesiones
     if len(log["sessions"]) > 20:
         log["sessions"] = log["sessions"][-20:]
 
-    with open(SESSION_LOG_PATH, "w") as f:
+    with open(path, "w") as f:
         json.dump(log, f, indent=2)
 
 
-def update_failed_tests(compressed: dict) -> None:
-    with open(FAILED_TESTS_PATH) as f:
-        history = json.load(f)
+def update_failed_tests(app_id: str, compressed: dict) -> None:
+    path = _failed_tests_path(app_id)
+
+    if path.exists():
+        with open(path) as f:
+            history = json.load(f)
+    else:
+        history = {"failures": [], "last_updated": None}
 
     timestamp = datetime.now(timezone.utc).isoformat()
     for test_name in compressed.get("failed_tests", []):
@@ -101,56 +146,66 @@ def update_failed_tests(compressed: dict) -> None:
 
     history["last_updated"] = timestamp
 
-    with open(FAILED_TESTS_PATH, "w") as f:
+    with open(path, "w") as f:
         json.dump(history, f, indent=2)
 
 
-def update_claude_md(compressed: dict) -> None:
-    """Actualiza la sección [AUTO] del CLAUDE.md."""
-    content = CLAUDE_MD_PATH.read_text()
+def update_claude_md(app_id: str, compressed: dict) -> None:
+    """Actualiza la sección [AUTO] del CLAUDE.md global."""
+    claude_md = ROOT / "CLAUDE.md"
+    if not claude_md.exists():
+        return
 
-    auto_section_start = "```json\n"
-    auto_section_end = "\n```"
+    content = claude_md.read_text()
+    log_path = _session_log_path(app_id)
+    if not log_path.exists():
+        return
 
-    with open(SESSION_LOG_PATH) as f:
+    with open(log_path) as f:
         log = json.load(f)
 
     new_context = {
         "last_run": log.get("last_compressed"),
+        "last_run_app": app_id,
         "last_run_date": log.get("last_compressed", "")[:10] if log.get("last_compressed") else None,
         "dod_status": "ok" if not compressed.get("failed_tests") else "failed",
         "recurring_failures": compressed.get("failed_tests", []),
         "learned_patterns": compressed.get("learned_patterns", []),
         "timing_baselines": compressed.get("timing_baselines", {}),
         "total_runs": len(log.get("sessions", [])),
-        "total_tests_generated": 0,
     }
 
-    marker_start = "## [AUTO] Contexto de sesión"
-    if marker_start in content:
-        before = content[:content.index(auto_section_start, content.index(marker_start)) + len(auto_section_start)]
-        after_start = content.index(auto_section_end, content.index(marker_start))
-        after = content[after_start:]
-        new_content = before + json.dumps(new_context, indent=2) + after
-        CLAUDE_MD_PATH.write_text(new_content)
+    marker = "## [AUTO] Contexto de sesión"
+    auto_start = "```json\n"
+    auto_end = "\n```"
+    if marker in content:
+        start_idx = content.index(auto_start, content.index(marker)) + len(auto_start)
+        end_idx = content.index(auto_end, content.index(marker))
+        new_content = content[:start_idx] + json.dumps(new_context, indent=2) + content[end_idx:]
+        claude_md.write_text(new_content)
 
 
 def main():
+    app_id = os.environ.get("APP_ID")
+    if not app_id:
+        print("ERROR: APP_ID no definido.", file=sys.stderr)
+        sys.exit(1)
+
     if len(sys.argv) > 1:
         agent2_output = json.loads(Path(sys.argv[1]).read_text())
     else:
         agent2_output = json.load(sys.stdin)
 
-    print("Comprimiendo contexto de sesión...")
+    print(f"Comprimiendo contexto para app: {app_id}...")
     compressed = compress(agent2_output)
 
-    update_session_log(compressed)
-    print(f"session_log.json actualizado. Resumen: {len(compressed.get('summary', ''))} chars")
+    update_session_log(app_id, compressed)
+    print(f"session_log.json actualizado (con backup). Resumen: {len(compressed.get('summary', ''))} chars")
 
-    update_failed_tests(compressed)
-    print(f"failed_tests.json actualizado. Fallos: {compressed.get('failed_tests', [])}")
+    update_failed_tests(app_id, compressed)
+    print(f"failed_tests_history.json actualizado. Fallos: {compressed.get('failed_tests', [])}")
 
-    update_claude_md(compressed)
+    update_claude_md(app_id, compressed)
     print("CLAUDE.md [AUTO] actualizado.")
 
 

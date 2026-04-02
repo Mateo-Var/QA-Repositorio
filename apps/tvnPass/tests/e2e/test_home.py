@@ -57,5 +57,6 @@ class TestHome:
         search = SearchPage(driver)
         assert search.is_loaded(timeout=5), "La pantalla de búsqueda no cargó"
 
+        search.dismiss_keyboard()  # el teclado puede bloquear el tap en Inicio
         home.tap_inicio()
         assert home.is_loaded(timeout=8), "Home no cargó tras volver desde Buscar"
