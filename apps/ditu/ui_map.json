@@ -1,0 +1,629 @@
+{
+  "app_id": "ditu",
+  "bundle_id": "com.caracol.ditu",
+  "explored_at": "2026-04-02T01:13:22.469690+00:00",
+  "version": "1.0.0",
+  "screens": {
+    "¡entra_ya,_es_gratis!": {
+      "trigger": "app_launch",
+      "depth": 0,
+      "elements": [
+        {
+          "type": "Application",
+          "name": "ditu",
+          "label": "ditu",
+          "value": ""
+        },
+        {
+          "type": "NavigationBar",
+          "name": "PlayerModule.InteractivePlayerView",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbLiveTv",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbCatalog",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbSearch",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbInformation",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "icon_app",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "GCKUICastButton",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "TV en vivo",
+          "label": "TV en vivo",
+          "value": "TV en vivo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Catálogo",
+          "label": "Catálogo",
+          "value": "Catálogo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "Buscar"
+        },
+        {
+          "type": "StaticText",
+          "name": "Cuenta",
+          "label": "Cuenta",
+          "value": "Cuenta"
+        },
+        {
+          "type": "Other",
+          "name": "player_previewContent",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Other",
+          "name": "player_login_prompt_overlay",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_programmingTitle",
+          "label": "PROGRAMACIÓN",
+          "value": "PROGRAMACIÓN"
+        },
+        {
+          "type": "Other",
+          "name": "btn_showMore",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Other",
+          "name": "Horizontal scroll bar, 1 page",
+          "label": "Horizontal scroll bar, 1 page",
+          "value": "0 %"
+        },
+        {
+          "type": "Other",
+          "name": "Vertical scroll bar, 4 pages",
+          "label": "Vertical scroll bar, 4 pages",
+          "value": "0 %"
+        },
+        {
+          "type": "StaticText",
+          "name": "Ver más",
+          "label": "Ver más",
+          "value": "Ver más"
+        },
+        {
+          "type": "Image",
+          "name": "chevron-right",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "¡ENTRA YA, ES GRATIS!",
+          "label": "¡ENTRA YA, ES GRATIS!",
+          "value": "¡ENTRA YA, ES GRATIS!"
+        },
+        {
+          "type": "StaticText",
+          "name": "Solo inicia sesión o regístrate…",
+          "label": "Solo inicia sesión o regístrate…",
+          "value": "Solo inicia sesión o regístrate…"
+        },
+        {
+          "type": "StaticText",
+          "name": "Vamos allá",
+          "label": "Vamos allá",
+          "value": "Vamos allá"
+        },
+        {
+          "type": "Image",
+          "name": "btn_fullScreen",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "btn_chip_Todo",
+          "label": "Todo",
+          "value": "Todo"
+        },
+        {
+          "type": "StaticText",
+          "name": "btn_chip_Caracol_TV",
+          "label": "Caracol TV",
+          "value": "Caracol TV"
+        },
+        {
+          "type": "StaticText",
+          "name": "btn_chip_Noticias",
+          "label": "Noticias",
+          "value": "Noticias"
+        },
+        {
+          "type": "StaticText",
+          "name": "btn_chip_Deportes",
+          "label": "Deportes",
+          "value": "Deportes"
+        },
+        {
+          "type": "StaticText",
+          "name": "btn_chip_Novelas",
+          "label": "Novelas",
+          "value": "Novelas"
+        },
+        {
+          "type": "Image",
+          "name": "img_cardChannelLogo",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "img_channelLogo_0",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "img_channelLogo_1",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTitle",
+          "label": "Reacción A Otro Nivel",
+          "value": "Reacción A Otro Nivel"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingMetadata",
+          "label": "Cap 30",
+          "value": "Cap 30"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTitle_0",
+          "label": "A Otro Nivel",
+          "value": "A Otro Nivel"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingMetadata_0",
+          "label": "Cap 30",
+          "value": "Cap 30"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTitle_1",
+          "label": "Milagros de Jesús",
+          "value": "Milagros de Jesús"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingMetadata_1",
+          "label": "Milagros en la Playa",
+          "value": "Milagros en la Playa"
+        },
+        {
+          "type": "StaticText",
+          "name": "ESTÁS VIENDO ",
+          "label": "ESTÁS VIENDO ",
+          "value": "ESTÁS VIENDO "
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTime",
+          "label": "7:45 PM - 9:30 PM",
+          "value": "7:45 PM - 9:30 PM"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTime_0",
+          "label": "8:00 PM - 9:30 PM",
+          "value": "8:00 PM - 9:30 PM"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_cardProgrammingTime_1",
+          "label": "7:16 PM - 8:07 PM",
+          "value": "7:16 PM - 8:07 PM"
+        }
+      ]
+    },
+    "btn_tbcatalog": {
+      "trigger": "tap:btn_tbCatalog",
+      "depth": 1,
+      "elements": [
+        {
+          "type": "Application",
+          "name": "ditu",
+          "label": "ditu",
+          "value": ""
+        },
+        {
+          "type": "NavigationBar",
+          "name": "Feature.PageView",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbLiveTv",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbCatalog",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbSearch",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbInformation",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "icon_app",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "GCKUICastButton",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "TV en vivo",
+          "label": "TV en vivo",
+          "value": "TV en vivo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Catálogo",
+          "label": "Catálogo",
+          "value": "Catálogo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "Buscar"
+        },
+        {
+          "type": "StaticText",
+          "name": "Cuenta",
+          "label": "Cuenta",
+          "value": "Cuenta"
+        },
+        {
+          "type": "Other",
+          "name": "Vertical scroll bar, 14 pages",
+          "label": "Vertical scroll bar, 14 pages",
+          "value": "0 %"
+        },
+        {
+          "type": "Other",
+          "name": "Vertical scroll bar, 10 pages",
+          "label": "Vertical scroll bar, 10 pages",
+          "value": "0 %"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_posterCarouselTitle",
+          "label": "Prime Caracol TV: Últimos capítulos",
+          "value": "Prime Caracol TV: Últimos capítulos"
+        },
+        {
+          "type": "Other",
+          "name": "Vertical scroll bar, 2 pages",
+          "label": "Vertical scroll bar, 2 pages",
+          "value": "0 %"
+        },
+        {
+          "type": "Image",
+          "name": "img_highlightDisplayedImage",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "img_posterImage",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_hightlightContentTitle",
+          "label": "Lo Imposible",
+          "value": "Lo Imposible"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_highlightMetadataYear",
+          "label": "2026",
+          "value": "2026"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_highlightMetadataContentType",
+          "label": "Película",
+          "value": "Película"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_highlightContentGenre",
+          "label": "Drama",
+          "value": "Drama"
+        }
+      ]
+    },
+    "btn_tbsearch": {
+      "trigger": "tap:btn_tbSearch",
+      "depth": 2,
+      "elements": [
+        {
+          "type": "Application",
+          "name": "ditu",
+          "label": "ditu",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbLiveTv",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbCatalog",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbSearch",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbInformation",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "TV en vivo",
+          "label": "TV en vivo",
+          "value": "TV en vivo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Catálogo",
+          "label": "Catálogo",
+          "value": "Catálogo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "Buscar"
+        },
+        {
+          "type": "StaticText",
+          "name": "Cuenta",
+          "label": "Cuenta",
+          "value": "Cuenta"
+        },
+        {
+          "type": "Other",
+          "name": "searchBar",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "CollectionView",
+          "name": "car_catalog",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Other",
+          "name": "Vertical scroll bar, 1 page",
+          "label": "Vertical scroll bar, 1 page",
+          "value": "0 %"
+        },
+        {
+          "type": "Other",
+          "name": "Horizontal scroll bar, 1 page",
+          "label": "Horizontal scroll bar, 1 page",
+          "value": "0 %"
+        },
+        {
+          "type": "Image",
+          "name": "icn_search",
+          "label": "",
+          "value": ""
+        }
+      ]
+    },
+    "btn_tbinformation": {
+      "trigger": "tap:btn_tbInformation",
+      "depth": 3,
+      "elements": [
+        {
+          "type": "Application",
+          "name": "ditu",
+          "label": "ditu",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbLiveTv",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbCatalog",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbSearch",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "btn_tbInformation",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "TV en vivo",
+          "label": "TV en vivo",
+          "value": "TV en vivo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Catálogo",
+          "label": "Catálogo",
+          "value": "Catálogo"
+        },
+        {
+          "type": "StaticText",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "Buscar"
+        },
+        {
+          "type": "StaticText",
+          "name": "Cuenta",
+          "label": "Cuenta",
+          "value": "Cuenta"
+        },
+        {
+          "type": "Other",
+          "name": "Horizontal scroll bar, 1 page",
+          "label": "Horizontal scroll bar, 1 page",
+          "value": "0 %"
+        },
+        {
+          "type": "StaticText",
+          "name": "lbl_informationTitle",
+          "label": "Información",
+          "value": "Información"
+        },
+        {
+          "type": "Cell",
+          "name": "lbl_appVersion",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "Image",
+          "name": "remove",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "Plataforma",
+          "label": "Plataforma",
+          "value": "Plataforma"
+        },
+        {
+          "type": "Image",
+          "name": "add",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "Iniciar sesión",
+          "label": "Iniciar sesión",
+          "value": "Iniciar sesión"
+        },
+        {
+          "type": "Image",
+          "name": "chevron-right",
+          "label": "",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "v2.3.0 (1)",
+          "label": "v2.3.0 (1)",
+          "value": "v2.3.0 (1)"
+        }
+      ]
+    }
+  },
+  "navigation_graph": {
+    "¡entra_ya,_es_gratis!": [
+      "btn_tbcatalog"
+    ],
+    "btn_tbcatalog": [
+      "btn_tbsearch"
+    ],
+    "btn_tbsearch": [
+      "btn_tbinformation"
+    ],
+    "btn_tbinformation": []
+  },
+  "tab_bar": [
+    "btn_tbLiveTv",
+    "btn_tbCatalog",
+    "btn_tbSearch",
+    "btn_tbInformation",
+    "GCKUICastButton"
+  ],
+  "total_screens": 4,
+  "total_elements": 96
+}
