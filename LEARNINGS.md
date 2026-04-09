@@ -138,5 +138,5 @@ ANDROID_HOME=C:\Users\santi\AppData\Local\...\platform-tools
 JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.10.7-hotspot
 
 # GitHub Actions (automático)
-GH_TOKEN   # = ${{ github.token }} — para gh pr comment
+GH_TOKEN   # = ${{ github.token }} — para gh pr comment 
 ```
