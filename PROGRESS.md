@@ -2,7 +2,7 @@
 
 > Resumen acumulado del estado del proyecto.
 > Se actualiza cuando el usuario lo pide.
-> Última actualización: 2026-04-04
+> Última actualización: 2026-04-08
 
 ---
 
@@ -10,22 +10,21 @@
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| **Fase 0** | Claude analiza el PR y publica comentario con sugerencias + resultado | ✅ Completo |
-| **Fase 1** | Unit tests Jest, cobertura mínima 70% | ✅ Completo |
-| **Fase 2** | E2E en dispositivos físicos (iOS + Android) | ✅ Completo |
-| **Fase 3** | Claude valida con visión (screenshots + video) | ⏳ Pendiente (necesita API Vision) |
+| **Fase 0** | Claude analiza el PR y publica comentario con sugerencias | ✅ Completo |
+| **Fase 1** | Unit tests Jest Android, cobertura mínima 70% | ✅ Completo |
+| **Fase 2** | E2E Android en dispositivo físico | ✅ Completo |
+| **Fase 3** | Claude valida con visión (screenshots + video) | ✅ Completo |
 | **Fase 4** | Allure Report en GitHub Pages | ⏳ Pendiente |
-| **Fase 5** | Build AAB (Android) + IPA (iOS) vía Fastlane | ⏳ Pendiente |
-| **Fase 6** | Distribución Firebase App Distribution + TestFlight + Slack | ⏳ Pendiente |
+| **Fase 5** | Build AAB (Android) vía Fastlane | ⏳ Pendiente |
+| **Fase 6** | Distribución Firebase App Distribution + Slack | ⏳ Pendiente |
 
 ---
 
 ## Apps registradas
 
-| App ID | Bundle / Package | Plataforma | Tests | Estado |
-|--------|-----------------|------------|-------|--------|
-| `ditu` | com.caracol.ditu | iOS 16+ | 36 pytest | ✅ Activo |
-| `tvnPass` | com.streann.tvnpass | iOS + Android | 19 iOS · 8 Android | ✅ Activo |
+| App ID | Package | Plataforma | Tests | Estado |
+|--------|---------|------------|-------|--------|
+| `tvnPass` | com.streann.tvnpass | Android | 8 E2E · 31 unit | ✅ Activo |
 
 ---
 
@@ -33,10 +32,10 @@
 
 | Agente | Archivo | Plataforma | Estado |
 |--------|---------|------------|--------|
-| Agente 0 iOS | `agents/explorer.py` | iOS (XCUITest) | ✅ Completo |
-| Agente 0 Android | `agents/explorer_android.py` | Android (UiAutomator2) | ✅ Completo |
-| Agente 1 | `agents/analyzer.py` | Ambas | ✅ Completo |
-| Agente 2 | `agents/generator_executor.py` | Ambas | ✅ Completo |
+| Agente 0 | `agents/explorer_android.py` | Android (UiAutomator2) | ✅ Completo |
+| Agente 1 | `agents/analyzer.py` | Android | ✅ Completo |
+| Agente 2 | `agents/generator_executor.py` | Android | ✅ Completo |
+| Agente 3 | `agents/vision_validator.py` | Android (Claude Vision) | ✅ Completo |
 
 ---
 
@@ -62,14 +61,12 @@
 | `tests/scripts/test_post_pr_comment.py` | 22 | Generador de comentarios PR |
 | **Total** | **61** | Mock de Claude API y subprocess |
 
-### Fase 2 — E2E
+### Fase 2 — E2E Android
 
 | Suite | Tests | Framework |
 |-------|-------|-----------|
-| Ditu iOS | 36 | pytest + Appium XCUITest |
-| TVN Pass iOS | 19 | pytest + Appium XCUITest |
 | TVN Pass Android | 8 | WebdriverIO + UiAutomator2 |
-| **Total** | **63** | |
+| **Total** | **8** | |
 
 ---
 
@@ -77,20 +74,22 @@
 
 ### Nuevos
 ```
-agents/explorer_android.py                 — Agente 0 Android (BFS + XML parsing + sugerencias)
-scripts/post_pr_comment.py                 — Genera y publica comentario en PR vía gh CLI
-scripts/run_android_explorer.sh            — Wrapper para correr el explorador Android
+agents/explorer_android.py                 — Agente 0 Android (BFS + XML parsing)
+agents/vision_validator.py                 — Agente 3 (Claude Vision)
+scripts/post_pr_comment.py                 — Genera y publica comentario en PR
+scripts/run_android_explorer.sh            — Wrapper explorador Android
 scripts/run_android.sh                     — Entry point E2E Android en CI
-scripts/run_local_tests.sh                 — Script de prueba local (Jest + pytest + syntax)
-scripts/test_data/mock_agent1_passed.json  — Datos mock Agente 1 (DOD passed)
-scripts/test_data/mock_agent1_failed.json  — Datos mock Agente 1 (CRITICO)
-scripts/test_data/mock_agent2_passed.json  — Datos mock Agente 2 (todo passed)
-scripts/test_data/mock_agent2_failed.json  — Datos mock Agente 2 (DOD violations)
-apps/tvnPass/tests/android/jest.config.js  — Config Jest con threshold 70%
+scripts/run_vision.sh                      — Wrapper Fase 3 validación visual
+scripts/test_data/mock_agent1_passed.json
+scripts/test_data/mock_agent1_failed.json
+scripts/test_data/mock_agent2_passed.json
+scripts/test_data/mock_agent2_failed.json
+apps/tvnPass/tests/android/jest.config.js
 apps/tvnPass/tests/android/tests/helpers/pageContains.js
 apps/tvnPass/tests/android/tests/helpers/waitFor.js
 apps/tvnPass/tests/android/tests/helpers/clickHelper.js
 apps/tvnPass/tests/android/tests/helpers/appState.js
+apps/tvnPass/tests/android/tests/helpers/screenshot.js
 apps/tvnPass/tests/android/tests/__tests__/pageContains.test.js
 apps/tvnPass/tests/android/tests/__tests__/waitFor.test.js
 apps/tvnPass/tests/android/tests/__tests__/clickHelper.test.js
@@ -105,10 +104,10 @@ pytest.ini
 
 ### Modificados
 ```
-apps/tvnPass/tests/android/package.json          — agregado Jest como devDependency
-apps/tvnPass/tests/android/tests/tvn-pass-live.test.js — refactor: importa desde helpers
-scripts/run_on_pr.sh                             — paso 6: llama a post_pr_comment.py
-.github/workflows/qa_agent.yml                  — Jest unit tests + GH_TOKEN + Android job
+apps/tvnPass/tests/android/package.json          — Jest como devDependency
+apps/tvnPass/tests/android/tests/tvn-pass-live.test.js — importa desde helpers
+scripts/run_on_pr.sh                             — Android-only, llama post_pr_comment.py
+.github/workflows/qa_agent.yml                  — Android-only pipeline
 ```
 
 ---
@@ -116,13 +115,10 @@ scripts/run_on_pr.sh                             — paso 6: llama a post_pr_com
 ## Cómo correr todo localmente
 
 ```bash
-# Todo junto (sin dispositivo ni GitHub)
-bash scripts/run_local_tests.sh
-
-# Solo Jest
+# Unit tests Android (Jest)
 cd apps/tvnPass/tests/android && npm run test:unit
 
-# Solo pytest (agentes)
+# Tests de agentes Python
 python -m pytest tests/ -v
 
 # Ver comentario PR sin publicar
@@ -132,18 +128,20 @@ python scripts/post_pr_comment.py \
   --agent2 scripts/test_data/mock_agent2_failed.json \
   --run-id pr42_test --dry-run
 
+# E2E Android completo (necesita dispositivo + Appium)
+APP_ID=tvnPass bash scripts/run_parallel.sh
+
 # Explorador Android (necesita dispositivo + Appium)
 APP_ID=tvnPass APP_PACKAGE=com.streann.tvnpass \
   APP_ACTIVITY=com.streann.tvnpass.MainActivity \
-  bash scripts/run_android_explorer.sh --device <serial-adb>
+  bash scripts/run_android_explorer.sh --device R5CTB1W92KY
 ```
 
 ---
 
 ## Próximos pasos
 
-1. **Fase 3** — Integrar Claude Vision: recibir screenshots del Agente 2 y analizarlos con la API de visión
-2. **Fase 4** — Allure Report: agregar `pytest-allure` y generar HTML en GitHub Pages
-3. **Fase 5** — Builds: configurar `xcodebuild` (iOS) y `gradlew assembleRelease` (Android)
-4. **Fase 6** — Fastlane + Firebase App Distribution + TestFlight + Slack rich messages
-5. **iOS TVN Pass** — Migrar a Mac Mini cuando esté disponible
+1. **Fase 4** — Allure Report: agregar `allure-commandline` y generar HTML en GitHub Pages
+2. **Fase 5** — Build: configurar `gradlew assembleRelease` (Android AAB)
+3. **Fase 6** — Fastlane + Firebase App Distribution + Slack rich messages
+# Smoke test — Thu Apr  9 11:27:39 HPS 2026
