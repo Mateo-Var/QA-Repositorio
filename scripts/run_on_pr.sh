@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_on_pr.sh — Trigger del sistema QA al abrir/actualizar un PR.
+# run_on_pr.sh — Trigger del sistema QA Android al abrir/actualizar un PR.
 # Llamado desde GitHub Actions como step en .github/workflows/qa_agent.yml
 #
 # Uso: ./scripts/run_on_pr.sh <pr_number> <base_sha> <head_sha>
@@ -14,17 +14,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUN_ID="pr${PR_NUMBER}_$(date -u +%Y%m%d_%H%M%S)"
 
-echo "=== QA Agent — PR #${PR_NUMBER} ==="
+echo "=== QA Agent Android — PR #${PR_NUMBER} ==="
 echo "Base: ${BASE_SHA} → Head: ${HEAD_SHA}"
 echo "Run ID: ${RUN_ID}"
 
 # ── Pre-filtro: saltar si solo cambiaron archivos no relevantes ───────────────
-# Evita gastar una llamada al Agente 1 para PRs de docs, configs, README, etc.
 CHANGED_FILES=$(git diff --name-only "${BASE_SHA}..${HEAD_SHA}")
 echo "Archivos cambiados:"
 echo "$CHANGED_FILES"
 
-# Patrones de archivos que NO disparan QA
 SKIP_PATTERNS=(
   "^README"
   "^docs/"
@@ -59,7 +57,7 @@ if [ "$RELEVANT" = false ]; then
   exit 0
 fi
 
-echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA..."
+echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA Android..."
 
 # ── 1. Generar diff del PR ────────────────────────────────────────────────────
 DIFF_FILE="/tmp/qa_diff_${RUN_ID}.txt"
@@ -71,6 +69,7 @@ TRIGGER_FILE="/tmp/qa_trigger_${RUN_ID}.json"
 cat > "$TRIGGER_FILE" <<EOF
 {
   "type": "pull_request",
+  "platform": "android",
   "pr_number": ${PR_NUMBER},
   "base_sha": "${BASE_SHA}",
   "head_sha": "${HEAD_SHA}",
@@ -86,8 +85,8 @@ cd "$ROOT"
 APP_ID="${APP_ID:?APP_ID requerido}" python agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
 echo "Agente 1 completado."
 
-# ── 4. Ejecutar Agente 2 (Generador/Ejecutor) ────────────────────────────────
-echo "--- Agente 2: Ejecutando..."
+# ── 4. Ejecutar Agente 2 Android (Generador/Ejecutor) ────────────────────────
+echo "--- Agente 2: Ejecutando suite Android..."
 AGENT2_OUTPUT="/tmp/qa_agent2_output_${RUN_ID}.json"
 python agents/generator_executor.py "$AGENT1_OUTPUT" > "$AGENT2_OUTPUT"
 echo "Agente 2 completado."
@@ -96,16 +95,21 @@ echo "Agente 2 completado."
 echo "--- Comprimiendo contexto..."
 APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT"
 
-# ── 6. Verificar DOD status ───────────────────────────────────────────────────
+# ── 6. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───
+echo "--- Publicando comentario en PR #${PR_NUMBER}..."
+python scripts/post_pr_comment.py \
+  --pr "${PR_NUMBER}" \
+  --agent1 "$AGENT1_OUTPUT" \
+  --agent2 "$AGENT2_OUTPUT" \
+  --run-id "${RUN_ID}" \
+  --edit \
+  || echo "⚠️  post_pr_comment falló — continuando sin comentario"
+
+# ── 7. Verificar DOD status ───────────────────────────────────────────────────
 DOD_STATUS=$(python3 -c "
-import json, sys
+import json
 data = json.load(open('$AGENT2_OUTPUT'))
-results = data.get('execute_results', [])
-if not results:
-    print('unknown')
-else:
-    statuses = [r.get('dod_status', 'unknown') for r in results]
-    print('failed' if 'failed' in statuses else 'passed')
+print(data.get('dod_status', 'unknown'))
 ")
 
 echo "DOD Status: ${DOD_STATUS}"
@@ -115,4 +119,7 @@ if [ "$DOD_STATUS" = "failed" ]; then
   exit 1
 fi
 
-echo "=== Run completado exitosamente ==="
+# ── Limpiar archivos temporales ───────────────────────────────────────────────
+rm -f "$DIFF_FILE" "$TRIGGER_FILE"
+
+echo "=== Run Android completado exitosamente ==="

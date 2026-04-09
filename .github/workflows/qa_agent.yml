@@ -1,80 +1,218 @@
-name: QA Agent
+name: QA Agent — Android
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
   schedule:
-    - cron: "0 3 * * *"  # Nightly a las 03:00 UTC
+    - cron: "0 3 * * *"   # Nightly a las 03:00 UTC
   workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number (opcional, para comentar resultados)"
+        required: false
+        default: "0"
 
+# ── Job 0: Sugerencia Claude (ubuntu, sin dispositivo) ───────────────────────
 jobs:
-  qa-agent:
-    runs-on: macos-14
-    timeout-minutes: 60
-
+  suggest:
+    name: "Fase 0 — Sugerencia Claude"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python deps
+        run: pip install -r requirements.txt
+      - name: Sugerencia Claude
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APP_ID:            ${{ secrets.APP_ID || 'tvnPass' }}
+          GH_TOKEN:          ${{ github.token }}
+        run: |
+          chmod +x scripts/run_suggestion.sh
+          ./scripts/run_suggestion.sh \
+            "${{ github.event.pull_request.number }}" \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
+# ── Job 1: Unit tests Android (sin dispositivo) ──────────────────────────────
+  unit-tests:
+    name: "Fase 1 — Unit Tests Android"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install JS deps
+        run: npm install
+
+      - name: Jest Android (helpers)
+        run: npm run test:unit
+
+# ── Job 2: E2E Android (self-hosted Mac Mini con Samsung físico) ──────────────
+  e2e-android:
+    name: "Fase 2 — E2E Android"
+    needs: unit-tests
+    runs-on: [self-hosted, android]   # Windows ahora / Mac Mini después — mismo label
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          npm install
+
+      - name: Fase 2 — E2E Android
+        env:
+          ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'R5CTB1W92KY' }}
+          ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
+          ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
+          APPIUM_SERVER_URL:     ${{ secrets.APPIUM_SERVER_URL || 'http://localhost:4723' }}
+          APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN:              ${{ github.token }}
+        run: |
+          chmod +x scripts/run_android.sh
+          APP_ID="${APP_ID}" bash scripts/run_android.sh
+
+      - name: Upload Android reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+
+# ── Job 3: Validación Visual Claude ──────────────────────────────────────────
+  vision-validate:
+    name: "Fase 3 — Validación Visual Claude"
+    needs: e2e-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
         run: pip install -r requirements.txt
 
-      - name: Start Appium
-        run: |
-          npm install -g appium@2
-          appium driver install xcuitest
-          appium &
-          sleep 5
+      - name: Download Android reports
+        uses: actions/download-artifact@v4
+        with:
+          name: android-reports-${{ github.run_id }}
+          path: reports/
+        continue-on-error: true
 
-      - name: Run QA Agent (PR)
-        if: github.event_name == 'pull_request'
+      - name: Fase 3 — Validación Visual
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          APPIUM_SERVER_URL: http://localhost:4723
-          APP_BUNDLE_ID: ${{ secrets.APP_BUNDLE_ID }}
-          APP_PATH: ${{ secrets.APP_PATH }}
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-          QA_RUN_ID: "pr${{ github.event.pull_request.number }}_${{ github.run_id }}"
+          APP_ID:            ${{ secrets.APP_ID || 'tvnPass' }}
+          GH_TOKEN:          ${{ github.token }}
         run: |
-          chmod +x scripts/run_on_pr.sh
-          ./scripts/run_on_pr.sh \
-            "${{ github.event.pull_request.number }}" \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}"
+          AGENT2=$(ls -t /tmp/qa_agent2_output_*.json 2>/dev/null | head -1 || echo "")
+          if [[ -z "$AGENT2" ]]; then
+            echo "⚠️  No se encontró agent2 output. Skipping Fase 3."
+            exit 0
+          fi
+          RUN_ID=$(basename "$AGENT2" | sed 's/qa_agent2_output_//' | sed 's/\.json//')
+          chmod +x scripts/run_vision.sh
+          ./scripts/run_vision.sh \
+            "${{ github.event.inputs.pr_number || 0 }}" \
+            "$AGENT2" \
+            "$RUN_ID"
 
-      - name: Run QA Agent (Nightly)
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          APPIUM_SERVER_URL: http://localhost:4723
-          APP_BUNDLE_ID: ${{ secrets.APP_BUNDLE_ID }}
-          APP_PATH: ${{ secrets.APP_PATH }}
-          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      - name: Upload vision reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vision-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 14
+
+# ── Job 4: Nightly Android ────────────────────────────────────────────────────
+  nightly:
+    name: "Nightly — Android"
+    runs-on: [self-hosted, android]   # Windows ahora / Mac Mini después — mismo label
+    timeout-minutes: 90
+    if: github.event_name == 'schedule'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
         run: |
-          chmod +x scripts/run_scheduled.sh
-          ./scripts/run_scheduled.sh
+          pip install -r requirements.txt
+          npm install
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: E2E Android
+        env:
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
+          APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
+          ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME }}
+          ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE }}
+          ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY }}
+          APPIUM_SERVER_URL:     http://localhost:4723
+        run: |
+          chmod +x scripts/run_android.sh
+          APP_ID="${APP_ID}" bash scripts/run_android.sh
 
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qa-reports-${{ github.run_id }}
+          name: nightly-reports-${{ github.run_id }}
           path: reports/
           retention-days: 14
 
-      - name: Notify Slack on DOD failure
+      - name: Notify Slack on failure
         if: failure() && env.SLACK_WEBHOOK_URL != ''
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d '{"text": "QA Agent: DOD test failure in run ${{ github.run_id }}"}'
+            -d '{"text":"QA Agent Android: fallo en run nightly ${{ github.run_id }}"}'

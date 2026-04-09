@@ -1,0 +1,15 @@
+/**
+ * waitFor — Espera con timeout propio y reintentos.
+ * GOT-02: usa browser.pause (no setTimeout) para que Jest pueda mockearlo.
+ */
+
+async function waitFor(conditionFn, timeoutMs, intervalMs, errorMsg) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await conditionFn()) return true;
+    await browser.pause(intervalMs);
+  }
+  throw new Error(errorMsg || `Timeout esperando condición (${timeoutMs}ms)`);
+}
+
+module.exports = { waitFor };

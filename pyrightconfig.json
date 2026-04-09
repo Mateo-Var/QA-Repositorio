@@ -1,0 +1,7 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.12",
+  "include": ["agents", "scripts"],
+  "exclude": [".venv", "node_modules", "reports"]
+}

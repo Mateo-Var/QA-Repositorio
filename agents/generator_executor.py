@@ -1,10 +1,10 @@
 """
-Agente 2 — Generador / Ejecutor
+Agente 2 — Generador / Ejecutor Android
 
 Responsabilidad:
 - Consume el JSON producido por el Agente 1.
-- Modo 'generate': genera tests E2E en tests/e2e/.
-- Modo 'execute': ejecuta pytest + Appium y reporta resultados.
+- Modo 'generate': genera tests E2E en JavaScript (WebdriverIO + Mocha).
+- Modo 'execute': ejecuta npm run test:android y reporta resultados.
 - Nunca actúa sin input del Agente 1.
 - Devuelve siempre JSON validado, nunca texto libre.
 """
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import anthropic
 
-ROOT = Path(__file__).parent.parent
+ROOT        = Path(__file__).parent.parent
 SCHEMA_PATH = ROOT / "schemas" / "agent_contract.json"
 PROMPT_PATH = ROOT / "prompts" / "agent2_gen_exec.md"
 
@@ -27,110 +27,140 @@ def app_dir(app_id: str) -> Path:
     return ROOT / "apps" / app_id
 
 
+def tests_root() -> Path:
+    """Directorio tests/ (helpers, unit, wdio.conf.js)."""
+    return ROOT / "tests"
+
+
+def e2e_dir(app_id: str) -> Path:
+    """Directorio de tests E2E por app."""
+    return app_dir(app_id) / "tests" / "e2e"
+
+
+def helpers_dir() -> Path:
+    """Helpers compartidos entre todas las apps."""
+    return tests_root() / "helpers"
+
+
 def load_prompt() -> str:
-    with open(PROMPT_PATH) as f:
-        return f.read()
-
-
-def list_existing_page_objects(app_id: str) -> list[str]:
-    pages_dir = app_dir(app_id) / "tests" / "pages"
-    return [p.name for p in pages_dir.glob("*.py") if p.name != "__init__.py"]
+    return PROMPT_PATH.read_text()
 
 
 def list_existing_tests(app_id: str) -> list[str]:
-    e2e_dir = app_dir(app_id) / "tests" / "e2e"
-    return [p.name for p in e2e_dir.glob("test_*.py")]
+    d = e2e_dir(app_id)
+    return [p.name for p in d.glob("*.test.js")] if d.exists() else []
+
+
+def list_existing_helpers() -> list[str]:
+    d = helpers_dir()
+    return [p.name for p in d.glob("*.js")] if d.exists() else []
+
+
+def _resolve_request(input_json: dict, key: str, decision_key: str) -> dict:
+    """
+    Soporta tanto 'decision.{key}' (schema v1) como '{key}_request' (schema v2).
+    """
+    return (
+        input_json.get(key)
+        or input_json.get("decision", {}).get(decision_key, {})
+        or {}
+    )
 
 
 def generate_tests(input_json: dict) -> dict:
-    """Llama a Claude para generar archivos de test E2E."""
-    app_id = input_json["app_id"]
-    e2e_dir = app_dir(app_id) / "tests" / "e2e"
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    system_prompt = load_prompt()
+    """Llama a Claude para generar archivos de test E2E en JavaScript."""
+    app_id    = input_json["app_id"]
+    tests_dir = e2e_dir(app_id)
+    client    = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    gen_request = _resolve_request(input_json, "generate_request", "generate")
 
     context = {
-        "mode": "generate",
-        "app_id": app_id,
-        "request": input_json.get("generate_request", {}),
-        "existing_page_objects": list_existing_page_objects(app_id),
-        "existing_tests": list_existing_tests(app_id),
-        "agent_context": input_json.get("context", {}),
+        "mode":              "generate",
+        "platform":          "android",
+        "app_id":            app_id,
+        "request":           gen_request,
+        "existing_tests":    list_existing_tests(app_id),
+        "existing_helpers":  list_existing_helpers(),
+        "agent_context":     input_json.get("context", {}),
     }
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=8096,
-        system=system_prompt,
+        system=load_prompt(),
         messages=[{"role": "user", "content": json.dumps(context, indent=2)}],
     )
 
     result = json.loads(response.content[0].text)
 
-    # Escribe los archivos generados
     generated = []
     for file_spec in result.get("files", []):
-        path = e2e_dir / file_spec["filename"]
+        path = tests_dir / file_spec["filename"]
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(file_spec["content"])
         generated.append(str(path.relative_to(ROOT)))
 
     return {
-        "mode": "generate",
-        "generated_files": generated,
-        "knowledge_update": result.get("knowledge_update", {}),
+        "mode":              "generate",
+        "generated_files":   generated,
+        "knowledge_update":  result.get("knowledge_update", {}),
     }
 
 
 def execute_tests(input_json: dict) -> dict:
-    """Ejecuta los tests indicados con pytest y reporta resultados."""
-    app_id = input_json["app_id"]
-    exec_request = input_json.get("execute_request", {})
-    test_files = exec_request.get("test_files", [])
-    dod_tests = exec_request.get("dod_tests", [])
-    device = exec_request.get("device", "iphone_14_sim")
+    """Ejecuta npm run test:android y reporta resultados."""
+    app_id       = input_json["app_id"]
+    exec_request = _resolve_request(input_json, "execute_request", "execute")
+    dod_tests    = exec_request.get("dod_tests", [])
+    device       = exec_request.get("device", "R5CTB1W92KY")
 
-    if not test_files and not dod_tests:
-        return {"mode": "execute", "status": "skipped", "reason": "No test files specified"}
+    run_id      = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    reports_dir = ROOT / "reports" / app_id / "runs"
+    reports_dir.mkdir(parents=True, exist_ok=True)
 
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    report_path = ROOT / "reports" / app_id / "runs" / f"{run_id}.json"
-    report_path.parent.mkdir(parents=True, exist_ok=True)
+    android_path = tests_root()
+    env = {
+        **os.environ,
+        "ANDROID_DEVICE_NAME":   device,
+        "QA_RUN_ID":             run_id,
+        "ANDROID_APP_PACKAGE":   os.environ.get("ANDROID_APP_PACKAGE", "com.streann.tvnpass"),
+        "ANDROID_APP_ACTIVITY":  os.environ.get("ANDROID_APP_ACTIVITY", "com.streann.tvnpass.MainActivity"),
+    }
 
-    all_tests = list(set(dod_tests + test_files))
-    cmd = [
-        "python", "-m", "pytest",
-        *all_tests,
-        "--json-report", f"--json-report-file={report_path}",
-        "-v",
-        f"--device={device}",
-    ]
+    proc = subprocess.run(
+        ["npm", "run", "test:android"],
+        capture_output=True,
+        text=True,
+        cwd=android_path,
+        env=env,
+    )
 
-    proc = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT)
+    # Determinar DOD status desde el exit code
+    dod_status   = "passed" if proc.returncode == 0 else "failed"
+    dod_failures = dod_tests if proc.returncode != 0 else []
 
-    # Lee el reporte generado por pytest-json-report
-    result_data = {}
-    if report_path.exists():
-        with open(report_path) as f:
-            result_data = json.load(f)
-
-    dod_status = "passed"
-    dod_failures = []
-    for test in dod_tests:
-        test_result = result_data.get("tests", {}).get(test, {})
-        if test_result.get("outcome") != "passed":
-            dod_status = "failed"
-            dod_failures.append(test)
+    # Guardar log del run
+    run_log = reports_dir / f"{run_id}.json"
+    run_log.write_text(json.dumps({
+        "run_id":      run_id,
+        "exit_code":   proc.returncode,
+        "dod_status":  dod_status,
+        "dod_failures": dod_failures,
+        "stdout":      proc.stdout[-3000:],  # últimas 3000 chars para no inflar
+        "stderr":      proc.stderr[-1000:],
+    }, indent=2))
 
     return {
-        "mode": "execute",
-        "run_id": run_id,
-        "dod_status": dod_status,
-        "dod_failures": dod_failures,
-        "exit_code": proc.returncode,
-        "report_path": str(report_path.relative_to(ROOT)),
+        "mode":          "execute",
+        "run_id":        run_id,
+        "dod_status":    dod_status,
+        "dod_failures":  dod_failures,
+        "exit_code":     proc.returncode,
+        "report_path":   str(run_log.relative_to(ROOT)),
         "knowledge_update": {
             "failed_tests": dod_failures,
-            "device": device,
+            "device":       device,
         },
     }
 
@@ -145,15 +175,15 @@ def run(input_json: dict) -> dict:
         raise ValueError(f"Modo desconocido: {mode!r}. Debe ser 'generate' o 'execute'.")
 
     result["_meta"] = {
-        "agent": "generator_executor",
+        "agent":     "generator_executor",
+        "platform":  "android",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "mode": mode,
+        "mode":      mode,
     }
     return result
 
 
 if __name__ == "__main__":
-    # Uso: python agents/generator_executor.py input.json
     input_path = sys.argv[1] if len(sys.argv) > 1 else None
     if not input_path:
         print("Uso: python agents/generator_executor.py <input.json>", file=sys.stderr)

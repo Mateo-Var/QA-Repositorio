@@ -13,7 +13,7 @@ Nunca hardcodear valores en los tests directamente.
 
 # ---------------------------------------------------------------------------
 # Timeouts críticos (en segundos)
-# Basados en el comportamiento conocido de TVN Pass en iOS
+# Basados en el comportamiento conocido de TVN Pass Android (Samsung físico)
 # ---------------------------------------------------------------------------
 
 DOD_TIMEOUTS = {

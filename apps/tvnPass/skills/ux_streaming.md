@@ -1,6 +1,6 @@
 # UX Patterns — Streaming Platforms
 
-> Skill base para el Agente 2. Describe patrones de UX esperados en apps de streaming iOS.
+> Skill base para el Agente 2. Describe patrones de UX esperados en apps de streaming Android.
 > Usar como referencia al generar assertions en tests E2E.
 
 ---
@@ -10,8 +10,8 @@
 ### Autenticación
 - El botón de login es el CTA primario — debe ser visible sin scroll en todos los tamaños de pantalla.
 - Errores de credenciales deben mostrar mensaje inline (no modal) dentro de los primeros 2s.
-- SSO: el flujo abre Safari/webview, completa y vuelve a la app automáticamente.
-- Biometría: Face ID / Touch ID debe ofrecerse tras el primer login exitoso.
+- SSO: el flujo abre WebView, completa y vuelve a la app automáticamente.
+- Biometría: Huella dactilar / Face Unlock debe ofrecerse tras el primer login exitoso.
 
 ### Selector de perfiles
 - Grid de perfiles: máx 5 perfiles visibles, scroll horizontal si hay más.
@@ -20,7 +20,7 @@
 - PIN infantil: teclado numérico, 4 dígitos, sin opción de pegar.
 
 ### Home / Catálogo
-- Hero banner ocupa el 40-50% del viewport en iPhone, 30% en iPad.
+- Hero banner ocupa el 40-50% del viewport en móvil, 30% en tablet.
 - Carruseles horizontales con snapping al ítem más cercano.
 - Títulos en carrusel: thumbnail + título + badge (Nuevo / Trending).
 - Loading state: skeleton screens, nunca spinners solos.
@@ -83,12 +83,12 @@
 
 ---
 
-## Diferencias iPhone vs iPad
+## Diferencias móvil vs tablet Android
 
-| Elemento | iPhone | iPad |
-|----------|--------|------|
-| Navegación | Tab bar inferior | Sidebar lateral |
-| Detalle de contenido | Push navigation | Split view |
-| Reproductor | Full screen | Puede ser en ventana flotante |
+| Elemento | Móvil | Tablet |
+|----------|-------|--------|
+| Navegación | Bottom navigation bar | Sidebar / navigation drawer |
+| Detalle de contenido | Push navigation | Panel lateral |
+| Reproductor | Full screen | Puede ser en ventana flotante (PiP) |
 | Grid de catálogo | 2 columnas | 4-5 columnas |
-| Teclado en búsqueda | Ocupa mitad pantalla | Flotante o dividido |
+| Teclado en búsqueda | Ocupa mitad pantalla | Flotante |

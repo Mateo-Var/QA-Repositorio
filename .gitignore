@@ -150,6 +150,10 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
+# Node
+node_modules/
+coverage/
+
 # Claude AI
 .claude/
 

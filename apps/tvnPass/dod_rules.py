@@ -16,7 +16,7 @@ CHANGELOG = [
         "version": "1.0.0",
         "date": "2026-04-01",
         "author": "julio",
-        "changes": "Versión inicial — timeouts base para TVN Pass físico (iPhone iOS 26).",
+        "changes": "Versión inicial — timeouts base para TVN Pass Android físico (Samsung R5CTB1W92KY).",
     },
     {
         "version": "1.1.0",

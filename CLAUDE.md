@@ -1,4 +1,4 @@
-# CLAUDE.md — QA Agent · iOS Streaming App
+# CLAUDE.md — QA Agent · Android Streaming Apps
 
 > Este archivo es la fuente de verdad del proyecto. Todos los agentes lo leen al iniciar.
 > La sección `## Contexto de sesión` se actualiza automáticamente al final de cada run.
@@ -8,28 +8,47 @@
 
 ## Proyecto
 
-**Qué es:** Sistema de QA autónomo con dos agentes para testear múltiples apps iOS desde un monorepo.
-**Stack:** Python 3.11 · Appium 2.x · XCUITest · pytest · Claude API (claude-sonnet-4-20250514)
-**Plataformas objetivo:** iOS 16+ · iPhone (SE, 12, 14, 15 Pro) · iPad Air · iPad Pro
-**Apps bajo prueba:** Múltiples apps iOS completamente distintas — cada una con su propio contexto, DOD y skills.
+**Qué es:** Sistema de QA autónomo con cuatro agentes especialistas en Android para testear apps de streaming desde un monorepo.
+**Stack:**
+- Python 3.11 · pytest-cov · Claude API (claude-sonnet-4-6)
+- Android: Appium 2.x · UiAutomator2 · WebdriverIO 9.x · Mocha · Jest 29
+**Plataforma objetivo:**
+- Android: Samsung físico vía WiFi ADB (serial: R5CTB1W92KY) · UiAutomator2
+**Apps bajo prueba:** `tvnPass` (Android). Cada app tiene su propio contexto, DOD y skills.
 **Modelo de ejecución:** Una app a la vez según el trigger. El `app_id` determina qué contexto y tests cargar.
 
 ---
 
 ## Agentes del sistema
 
+### Agente 0 — Explorador Android
+- **Archivo:** `agents/explorer_android.py`
+- **Responsabilidad:** Igual que el iOS pero para Android/UiAutomator2. Genera `apps/{app_id}/ui_map_android.json`.
+- **Reglas críticas:** `waitForIdleTimeout=0` obligatorio · usar `activateApp` nunca `startActivity` (bloqueado en Android 16).
+- **Cuándo usarlo:** Al agregar una nueva app Android. No corre en cada PR ni nightly.
+
 ### Agente 1 — Analizador
 - **Archivo:** `agents/analyzer.py`
 - **Prompt:** `prompts/agent1_analyzer.md`
-- **Responsabilidad:** Recibe triggers (PR, webhook, schedule), analiza qué cambió, decide qué tests ejecutar o generar, construye el input JSON para el Agente 2.
+- **Responsabilidad:** Recibe triggers (PR, `/qa` comment, schedule), analiza qué cambió, decide qué tests ejecutar o generar, construye el input JSON para el Agente 2.
+- **Plataforma:** Android.
 - **No ejecuta tests. No genera código. Solo decide y delega.**
 
 ### Agente 2 — Generador / Ejecutor
 - **Archivo:** `agents/generator_executor.py`
 - **Prompt:** `prompts/agent2_gen_exec.md`
-- **Responsabilidad:** Genera tests E2E nuevos o ejecuta suites existentes según instrucción del Agente 1.
+- **Responsabilidad:** Genera tests E2E en JavaScript (WebdriverIO/Mocha) o ejecuta `npm run test:android`.
 - **Modos:** `generate` | `execute`
-- **Nunca actúa sin input del Agente 1.**
+- **Produce:** screenshots en `reports/{app_id}/screenshots/{run_id}/failures/` y `happy_path/`, video vía wdio-video-reporter.
+
+### Agente 3 — Validador Visual
+- **Archivo:** `agents/vision_validator.py`
+- **Prompt:** `prompts/agent3_vision.md`
+- **Responsabilidad:** Recibe los screenshots (failures/ y happy_path/) y resultados del Agente 2. Envía las imágenes a Claude con visión y emite un veredicto: `passed` / `failed` / `blocking`. Si es `blocking`, el merge queda bloqueado.
+- **Inputs:** run_id, app_id, dod_status, dod_failures, screenshots_dir, video_path
+- **Output:** JSON con vision_verdict, block_merge, diagnosis, findings, recommendations
+- **Cuándo corre:** Después de cada run E2E Android. En CI: job `vision-validate` (workflow_dispatch). En local: `run_parallel.sh` lo llama automáticamente.
+- **No bloquea si el agente en sí falla** — solo bloquea si `block_merge: true` en su output JSON.
 
 ### Comunicación entre agentes
 El Agente 1 produce un JSON estructurado. El Agente 2 lo consume.
@@ -45,8 +64,9 @@ Cargan contexto desde `apps/{app_id}/` — nunca desde rutas hardcodeadas.
 context = load_context(app_id=os.environ["APP_ID"])
 # Carga: apps/{app_id}/app_context.md
 #        apps/{app_id}/dod_rules.py
-#        apps/{app_id}/session_log.json  (versión comprimida)
-#        apps/{app_id}/skills/           (todos los .md presentes)
+#        apps/{app_id}/session_log.json       (versión comprimida)
+#        apps/{app_id}/skills/                (todos los .md presentes)
+#        apps/{app_id}/ui_map_android.json    (generado por Agente 0)
 ```
 
 ---
@@ -77,65 +97,87 @@ Si necesitas ajustar un timeout, edítalo ahí — nunca en el test directamente
 ## Estructura del proyecto
 
 ```
-qa-agent/
-├── CLAUDE.md                            ← este archivo (sistema global)
-├── schemas/
-│   └── agent_contract.json              ← contrato compartido entre agentes
-├── prompts/
-│   ├── agent1_analyzer.md               ← compartido, genérico
-│   └── agent2_gen_exec.md               ← compartido, genérico
-├── agents/
-│   ├── analyzer.py                      ← Agente 1 (recibe app_id)
-│   └── generator_executor.py            ← Agente 2 (recibe app_id)
-├── scripts/
-│   ├── run_on_pr.sh                     ← trigger desde GitHub Actions
-│   ├── run_scheduled.sh                 ← trigger programado (nightly)
-│   ├── compress_context.py              ← [AUTO] comprime session_log al final del run
-│   └── update_claude_md.py              ← [AUTO] actualiza sección de contexto
+ott-qa-pipeline/
+├── CLAUDE.md                            ← este archivo (fuente de verdad global)
+├── PROGRESS.md                          ← estado del proyecto por fases
+├── LEARNINGS.md                         ← decisiones técnicas y gotchas
+├── pytest.ini                           ← config pytest-cov, norecursedirs=apps
+├── requirements.txt                     ← deps Python
 │
-├── apps/                                ← workspace por app — agregar sin tocar agentes
-│   ├── app_streaming_mx/
-│   │   ├── app_context.md               ← Skill 1: qué es esta app
-│   │   ├── dod_rules.py                 ← DOD específico de esta app
-│   │   ├── session_log.json             ← [AUTO] aprendizajes de esta app
-│   │   ├── failed_tests_history.json    ← [AUTO] historial de fallos de esta app
-│   │   ├── skills/
-│   │   │   ├── geo_rules.md
-│   │   │   ├── ads_behavior.md
-│   │   │   ├── subscription_states.md
-│   │   │   ├── offline_patterns.md
-│   │   │   └── content_risk_matrix.md
-│   │   └── tests/
-│   │       ├── e2e/
-│   │       ├── pages/
-│   │       └── fixtures/
-│   │
-│   ├── app_noticias/                    ← estructura idéntica, contenido diferente
-│   │   ├── app_context.md
-│   │   ├── dod_rules.py
-│   │   ├── session_log.json
-│   │   ├── failed_tests_history.json
-│   │   ├── skills/
-│   │   └── tests/
-│   │
-│   └── app_N/                           ← agregar una app = crear esta carpeta
-│       └── ...
+├── schemas/
+│   └── agent_contract.json              ← contrato JSON entre agentes
+│
+├── prompts/
+│   ├── agent1_analyzer.md               ← prompt Agente 1 (Android)
+│   ├── agent2_gen_exec.md               ← prompt Agente 2 (Android)
+│   └── agent3_vision.md                 ← prompt Agente 3 (Claude Vision)
+│
+├── agents/
+│   ├── explorer_android.py              ← Agente 0 (BFS + UiAutomator2)
+│   ├── analyzer.py                      ← Agente 1 (Android)
+│   ├── generator_executor.py            ← Agente 2 (Android)
+│   └── vision_validator.py              ← Agente 3 (Claude Vision)
+│
+├── scripts/
+│   ├── run_on_pr.sh                     ← trigger PR: Fase 0 + Fase 2 Android
+│   ├── run_suggestion.sh                ← trigger /qa: solo Fase 0 (sin Appium)
+│   ├── run_scheduled.sh                 ← trigger nightly Android
+│   ├── run_android.sh                   ← E2E Android: npm test:android
+│   ├── run_android_explorer.sh          ← wrapper Agente 0 Android
+│   ├── run_parallel.sh                  ← Fase 1 + E2E + Fase 3 en local
+│   ├── run_vision.sh                    ← wrapper Fase 3 validación visual
+│   ├── post_pr_comment.py               ← publica comentario en PR vía gh CLI
+│   ├── compress_context.py              ← [AUTO] comprime session_log post-run
+│   └── update_claude_md.py              ← [AUTO] actualiza sección [AUTO] de este archivo
+│
+├── tests/                               ← runner npm compartido (multi-app)
+│   ├── package.json                     ← WebdriverIO + Jest, type:commonjs
+│   ├── jest.config.js                   ← threshold 70%, cubre helpers/
+│   ├── wdio.conf.js                     ← caps UiAutomator2; specs dinámicos por APP_ID
+│   ├── helpers/                         ← helpers compartidos entre todas las apps
+│   │   ├── screenshot.js
+│   │   ├── pageContains.js
+│   │   ├── waitFor.js
+│   │   ├── clickHelper.js
+│   │   └── appState.js
+│   └── unit/                            ← unit tests Jest (sin device, ≥70% cobertura)
+│       ├── appState.test.js
+│       ├── clickHelper.test.js
+│       ├── pageContains.test.js
+│       ├── screenshot.test.js
+│       └── waitFor.test.js
+│
+├── apps/                                ← workspace por app — agregar sin tocar tests/
+│   └── tvnPass/
+│       ├── app_context.md               ← qué es esta app, flujos, stack Android
+│       ├── dod_rules.py                 ← timeouts DOD centralizados
+│       ├── session_log.json             ← [AUTO] aprendizajes comprimidos
+│       ├── failed_tests_history.json    ← [AUTO] historial de fallos
+│       ├── ui_map_android.json          ← [AUTO] generado por Agente 0
+│       ├── skills/
+│       │   ├── dod_rules_reference.md
+│       │   └── ux_streaming.md
+│       └── tests/
+│           └── e2e/                     ← tests E2E por app (cargados por wdio.conf.js)
+│               └── tvn-pass-live.test.js   ← 8 tests E2E Live Player
 │
 └── reports/
-    ├── app_streaming_mx/                ← resultados separados por app
-    │   ├── screenshots/
-    │   ├── videos/
-    │   └── runs/
-    ├── app_noticias/
-    └── app_N/
+    └── tvnPass/
+        ├── screenshots/
+        │   └── {run_id}/
+        │       ├── happy_path/
+        │       └── failures/
+        ├── videos/
+        └── runs/
 ```
 
 ### Cómo agregar una app nueva
 1. Crear carpeta `apps/nombre_app/`
-2. Escribir `app_context.md` con el contexto de esa app
-3. Escribir `dod_rules.py` con sus criterios críticos
-4. Crear `skills/` con los `.md` relevantes para esa app
-5. Agregar `APP_ID=nombre_app` como secret en GitHub Actions
+2. Correr `Agente 0 Android` para generar `ui_map_android.json`
+3. Escribir `app_context.md` y `dod_rules.py`
+4. Crear `skills/` con los `.md` relevantes
+5. Crear `tests/` con la misma estructura que `tvnPass`
+6. Agregar secrets en GitHub Actions
 
 **No tocar agentes, scripts ni schema.** El sistema los soporta automáticamente.
 
@@ -143,70 +185,60 @@ qa-agent/
 
 ## Convenciones de código
 
-### Nombres de tests
-```
-test_[flujo]_[escenario]_[resultado_esperado]
+### Nombres de tests Android
+```javascript
+// Correcto:
+it('login_email_credenciales_invalidas_muestra_error', ...)
+it('reproductor_live_sin_conexion_muestra_pantalla_offline', ...)
+it('busqueda_query_vacio_no_muestra_resultados', ...)
 
-# Ejemplos correctos
-test_login_email_credenciales_invalidas_muestra_error
-test_reproductor_sin_conexion_muestra_pantalla_offline
-test_busqueda_query_vacio_no_muestra_resultados
-
-# Incorrecto
-test_login_1
-test_busqueda_funciona
+// Incorrecto:
+it('test login', ...)
+it('test1', ...)
 ```
 
-### Page Objects
-- Un archivo por pantalla principal
-- Hereda de `BasePage` (`tests/pages/base_page.py`)
-- Los locators van como constantes de clase, arriba del todo
-- Los métodos describen acciones del usuario, no del driver: `tap_continuar()` no `click_button_by_id()`
-
-### Waits
-```python
-# Siempre así
-wait_for_element(driver, locator, timeout=DOD_TIMEOUTS["login"])
-
-# Nunca así
-time.sleep(2)
-driver.implicitly_wait(5)
+### Selectores Android — orden de preferencia
+```javascript
+'~content-desc'                              // 1. Mejor: accessibility label
+'id:com.streann.tvnpass:id/nombre'           // 2. resource-id estable
+'android=new UiSelector().text("texto")'    // 3. texto visible
+// Nunca xpath — especialmente en Jetpack Compose
 ```
 
-### Screenshots
-- Se capturan automáticamente en cada fallo (fixture en conftest.py)
-- Ruta: `reports/screenshots/[run_id]/[test_name].png`
-- En suites de más de 5 tests, grabar video completo del run
+### Helpers — siempre importar, nunca inline
+```javascript
+const { waitForElement }      = require('../helpers/waitFor');
+const { pageContains }        = require('../helpers/pageContains');
+const { clickElement }        = require('../helpers/clickHelper');
+const { normalizarEstadoApp } = require('../helpers/appState');
+const { takeScreenshot }      = require('../helpers/screenshot');
+
+// NUNCA:
+await browser.pause(3000);
+```
+
+### Screenshots y video
+- Happy path: `reports/screenshots/{run_id}/happy_path/{test}.png` (afterEach automático)
+- Failures: `reports/screenshots/{run_id}/failures/{test}.png` (afterEach automático)
+- Video: WebdriverIO video reporter → `reports/{app_id}/videos/`
 
 ---
 
 ## Configuración de dispositivos
 
-```python
-# tests/fixtures/devices.py
-
-DEVICES = {
-    "iphone_14_sim": {
-        "platformName": "iOS",
-        "platformVersion": "17.2",
-        "deviceName": "iPhone 14",
-        "automationName": "XCUITest",
-        "udid": "auto",
-        "noReset": False,
-        "screenshotQuality": 1
-    },
-    "ipad_air_sim": {
-        "platformName": "iOS",
-        "platformVersion": "17.2",
-        "deviceName": "iPad Air (5th generation)",
-        "automationName": "XCUITest",
-        "udid": "auto",
-        "noReset": False
-    }
+```javascript
+// tests/wdio.conf.js — fragmento de capabilities
+{
+  platformName:                    'Android',
+  'appium:udid':                   '192.168.1.50:5555', // WiFi ADB — IP:puerto del Samsung físico
+  'appium:deviceName':             'Android',
+  'appium:appPackage':             'com.streann.tvnpass',
+  'appium:appActivity':            'com.streann.tvnpass.MainActivity',
+  'appium:automationName':         'UiAutomator2',
+  'appium:noReset':                true,
+  'appium:waitForIdleTimeout':     0,   // DEC-01: CRÍTICO en apps de streaming
+  'appium:waitForSelectorTimeout': 0,
 }
-
-# Para dispositivos físicos, los UDID van en variables de entorno
-# DEVICE_UDID_IPHONE14=xxx python -m pytest ...
 ```
 
 ---
@@ -217,11 +249,11 @@ Estas reglas aplican a todos los agentes siempre:
 
 1. **Contexto comprimido.** Los agentes nunca leen `session_log.json` completo. Solo leen el resumen generado por `compress_context.py` al final del run anterior (máx 500 tokens).
 
-2. **Referencias, no contenido.** Si un agente necesita ver un test existente, lee solo la función específica, no el archivo completo. Prompt: `"dame solo la función test_login_sso_happy_path de tests/e2e/test_login_sso.py"`.
+2. **Referencias, no contenido.** Si un agente necesita ver un test existente, lee solo la función específica. Prompt: `"dame solo el it('login_email_happy_path') de tests/tvn-pass-live.test.js"`.
 
 3. **Cache de DOD.** Si el diff del PR no toca los flujos DOD, esos tests no se incluyen en contexto. Se ejecutan en background sin pasar por el agente.
 
-4. **Page Objects reutilizados.** Antes de generar un nuevo Page Object, el Agente 2 revisa `tests/pages/`. Si existe el 70% de lo que necesita, extiende — no crea desde cero.
+4. **Tests reutilizados.** Antes de generar un test nuevo, el Agente 2 revisa `existing_tests`. Si existe el 70% del flujo que necesita, agrega `it()` al describe existente — no crea archivos duplicados.
 
 5. **Output estructurado.** Los agentes nunca devuelven texto libre — siempre JSON validado contra `schemas/agent_contract.json`. Esto evita parsing costoso y re-prompting.
 
@@ -232,40 +264,48 @@ Estas reglas aplican a todos los agentes siempre:
 ## Flujo de trabajo completo
 
 ```
-Trigger (PR / schedule / manual) + APP_ID
+━━━ FASE 0 — Sugerencia (sin Appium) ━━━━━━━━━━━━━━━━━━━━━━━━━
+Trigger: PR abierto  →  run_on_pr.sh
+Trigger: /qa comment →  run_suggestion.sh  (qa_on_comment.yml)
     │
     ▼
-scripts/run_on_pr.sh
-    ├── Lee APP_ID del trigger
-    ├── Carga secrets de esa app
-    └── Lanza Agente 1
+Agente 1 — Analizador
+    ├── Lee: diff del PR
+    ├── Lee: apps/{app_id}/app_context.md
+    ├── Lee: apps/{app_id}/dod_rules.py
+    ├── Lee: apps/{app_id}/session_log.json (comprimido)
+    └── Lee: apps/{app_id}/skills/*.md (carga selectiva por keywords)
+    └── Produce: JSON con sugerencias de tests + decisión execute/generate
             │
             ▼
-    Agente 1 — Analizador
-            ├── Lee: diff del cambio
-            ├── Lee: apps/{app_id}/app_context.md
-            ├── Lee: apps/{app_id}/dod_rules.py
-            ├── Lee: apps/{app_id}/session_log.json (comprimido)
-            ├── Lee: apps/{app_id}/skills/*.md
-            └── Produce: input JSON para Agente 2
+    scripts/post_pr_comment.py
+            └── Publica en el PR: casos sugeridos + riesgo + notas streaming
+
+━━━ FASE 1 — Unit Tests (sin dispositivo) ━━━━━━━━━━━━━━━━━━━━
+Android → cd tests && npm run test:unit (Jest ≥70%)
+Si falla → pipeline se frena aquí.
+
+━━━ FASE 2 — E2E Android en dispositivo físico ━━━━━━━━━━━━━━━
+Agente 2 — Gen/Exec (Android)
+    ├── Modo generate → apps/{app_id}/tests/e2e/*.test.js
+    └── Modo execute  → npm run test:android (Samsung R5CTB1W92KY vía WiFi ADB)
+
+scripts/run_android.sh
+    └── wdio run wdio.conf.js (UiAutomator2)
+
+Captura screenshots (happy_path/ y failures/) + video automáticamente.
+            │
+            ▼
+    scripts/compress_context.py
+            ├── Escribe en apps/{app_id}/session_log.json
+            ├── Escribe en apps/{app_id}/failed_tests_history.json
+            └── Actualiza sección [AUTO] de CLAUDE.md
                     │
                     ▼
-            Agente 2 — Gen/Exec
-                    ├── Modo generate → apps/{app_id}/tests/e2e/
-                    ├── Modo execute  → corre pytest + Appium
-                    └── Produce: resultado JSON + knowledge_update
-                            │
-                            ▼
-                    scripts/compress_context.py --app-id {app_id}
-                            ├── Escribe en apps/{app_id}/session_log.json
-                            ├── Escribe en apps/{app_id}/failed_tests_history.json
-                            └── Actualiza sección [AUTO] de CLAUDE.md
-                                    │
-                                    ▼
-                            reports/{app_id}/runs/{run_id}.json
-                                    │
-                                    ▼
-                            Notificación (Slack / GitHub / Jira)
+            reports/{app_id}/runs/{run_id}.json
+                    │
+                    ▼
+            Notificación (Slack / GitHub)
 ```
 
 ---
@@ -291,28 +331,26 @@ No modifiques los agentes.
 ## Variables de entorno requeridas
 
 ```bash
+# ── Comunes ───────────────────────────────────────────────────
 ANTHROPIC_API_KEY=           # API key de Claude
 APPIUM_SERVER_URL=           # http://localhost:4723 en local
-APP_ID=                      # identificador de la app a testear (ej: app_streaming_mx)
-APP_BUNDLE_ID=               # com.tuempresa.tuapp — específico por app en GitHub Secrets
-APP_PATH=                    # ruta al .ipa — opcional si ya está instalada
-TEST_USER_EMAIL=             # usuario de prueba de esa app
-TEST_USER_PASSWORD=          # password del usuario de prueba
-DEVICE_UDID=                 # UDID del iPhone/iPad conectado
-SLACK_WEBHOOK_URL=           # opcional, para notificaciones
-JIRA_API_TOKEN=              # opcional, para tickets automáticos
-```
+APP_ID=                      # identificador de la app (ej: tvnPass)
 
-En GitHub Actions, cada app tiene sus propios secrets prefijados:
-```bash
-APP_STREAMING_MX_BUNDLE_ID=com.empresa.streamingmx
-APP_STREAMING_MX_TEST_USER=qa@streaming.mx
-APP_NOTICIAS_BUNDLE_ID=com.empresa.noticias
-APP_NOTICIAS_TEST_USER=qa@noticias.com
-# etc.
-```
+# ── Android ───────────────────────────────────────────────────
+ANDROID_DEVICE_NAME=         # Serial ADB del Samsung físico (R5CTB1W92KY)
+ANDROID_APP_PACKAGE=         # com.streann.tvnpass
+ANDROID_APP_ACTIVITY=        # com.streann.tvnpass.MainActivity
+ANDROID_HOME=                # ruta a platform-tools de ADB
+                             # fallback en wdio.conf.js si no está definida
+JAVA_HOME=                   # ruta al JDK 21
+TEST_USER_EMAIL=             # usuario de prueba Android
+TEST_USER_PASSWORD=          # password Android
 
-El `run_on_pr.sh` lee el `APP_ID` del trigger y carga los secrets correctos.
+# ── Notificaciones (opcionales) ───────────────────────────────
+SLACK_WEBHOOK_URL=
+JIRA_API_TOKEN=
+GH_TOKEN=                    # = ${{ github.token }} en Actions — para gh pr comment
+```
 
 ---
 

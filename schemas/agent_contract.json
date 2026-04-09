@@ -265,6 +265,18 @@
       }
     },
 
+    "vision_finding": {
+      "type": "object",
+      "description": "Observación del Agente 3 sobre una pantalla específica.",
+      "required": ["screenshot", "observation", "severity"],
+      "additionalProperties": false,
+      "properties": {
+        "screenshot":   { "type": "string", "description": "Nombre del archivo de screenshot." },
+        "observation":  { "type": "string", "description": "Qué se observa en la imagen." },
+        "severity":     { "type": "string", "description": "blocking, warning o ok." }
+      }
+    },
+
     "agent2_knowledge_update": {
       "type": ["object", "null"],
       "description": "Lo que el Agente 2 aprendió. Se escribe directo en session_log.json.",
@@ -288,6 +300,42 @@
   },
 
   "oneOf": [
+
+    {
+      "title": "Contrato de salida — Agente 3 hacia el sistema",
+      "type": "object",
+      "required": ["agent", "app_id", "run_id", "vision_verdict", "block_merge", "diagnosis"],
+      "additionalProperties": false,
+      "properties": {
+        "agent":           { "const": "vision_validator" },
+        "app_id":          { "type": "string" },
+        "run_id":          { "type": "string" },
+        "vision_verdict":  { "type": "string", "description": "passed, failed o blocking." },
+        "block_merge":     { "type": "boolean" },
+        "diagnosis":       { "type": "string" },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/vision_finding" },
+          "default": []
+        },
+        "blocking_reason": { "type": ["string", "null"], "default": null },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "selected_images": {
+          "type": "object",
+          "properties": {
+            "happy_path": { "type": "array", "items": { "type": "string" } },
+            "failures":   { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "video_path": { "type": ["string", "null"], "default": null },
+        "_meta": { "type": "object" }
+      }
+    },
+
 
     {
       "title": "Contrato de salida — Agente 1 hacia Agente 2",

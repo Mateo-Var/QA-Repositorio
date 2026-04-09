@@ -1,6 +1,0 @@
-{
-  "app_id": "ditu",
-  "bundle_id": "com.caracol.ditu",
-  "summary": "Primera sesión — onboarding completado con Agent 0 (2026-04-01). App explorada en estado no autenticado. 4 pantallas mapeadas (home/live, catálogo, búsqueda, información). Lives inestables documentados. Sin confirmación de correo en registro. DOD-03 timeout = 15s para live. Tests generados: login, registro, live TV, VOD, búsqueda, player performance.",
-  "runs": []
-}

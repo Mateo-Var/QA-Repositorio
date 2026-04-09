@@ -11,15 +11,15 @@
 
 ### [BUG-01] Desconexión de claves entre Agente 1 y Agente 2
 **Archivo:** `agents/generator_executor.py` · `execute_tests()` y `generate_tests()`
-**Problema:** El Agente 1 produce `decision.execute` y `decision.generate`, pero el Agente 2 lee `execute_request` y `generate_request` — claves distintas. `run_on_pr.sh` pasa el output del Agente 1 directamente al Agente 2 sin transformar las claves.
-**Estado:** Detectado, no corregido (requiere decisión del equipo sobre qué clave usar).
-**Impacto:** Si se activa el pipeline real, el Agente 2 recibirá dicts vacíos y ejecutará `skipped`.
+**Problema:** El Agente 1 produce `decision.execute` y `decision.generate`, pero el Agente 2 leía `execute_request` y `generate_request` — claves distintas.
+**Estado:** ✅ Corregido — `_resolve_request()` (línea 45) soporta ambas formas de clave sin transformación externa.
+**Impacto resuelto:** El Agente 2 lee correctamente tanto `execute_request` como `decision.execute`.
 
 ### [BUG-02] `execute_tests` espera `tests` como dict, pytest-json-report entrega lista
-**Archivo:** `agents/generator_executor.py` línea 119
-**Problema:** El código hace `result_data.get("tests", {}).get(test, {})` asumiendo que `tests` es un dict keyed por nombre de test. En realidad `pytest-json-report` devuelve `tests` como lista de objetos.
-**Estado:** Detectado, no corregido.
-**Impacto:** El chequeo DOD siempre falla silenciosamente (nunca encuentra el test en el dict vacío → marca todo como failed).
+**Archivo:** `agents/generator_executor.py` línea 131
+**Problema:** El código asumía que `tests` era un dict keyed por nombre. En realidad `pytest-json-report` devuelve `tests` como lista de objetos.
+**Estado:** ✅ Corregido — usa `next()` con búsqueda por `nodeid`/`name` sobre la lista (línea 131).
+**Impacto resuelto:** El chequeo DOD encuentra los tests correctamente en la lista.
 
 ---
 
@@ -116,10 +116,9 @@ browser.execute.mockImplementation(async (cmd) => {
 
 ## Contexto de dispositivos
 
-| Dispositivo | Serial ADB / UDID | Uso |
-|-------------|------------------|-----|
+| Dispositivo | Serial ADB | Uso |
+|-------------|-----------|-----|
 | Samsung Android (físico) | `R5CTB1W92KY` | TVN Pass Android E2E |
-| iPhone (pendiente) | — | TVN Pass iOS (cuando llegue a Mac Mini) |
 
 ---
 

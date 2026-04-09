@@ -1,0 +1,84 @@
+name: QA on Comment
+
+# Trigger: alguien comenta /qa en un PR
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  qa-suggestion:
+    # Solo correr si:
+    # 1. El comentario es exactamente "/qa" (o empieza con "/qa")
+    # 2. El comentario es en un PR (no en un issue plano)
+    if: |
+      startsWith(github.event.comment.body, '/qa') &&
+      github.event.issue.pull_request != null
+
+    runs-on: ubuntu-latest   # No necesita Appium — solo sugiere tests
+    timeout-minutes: 10
+
+    steps:
+      - name: Reaccionar al comentario (ACK)
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='eyes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Obtener datos del PR
+        id: pr
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          PR_JSON=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER)
+          BASE_SHA=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['base']['sha'])")
+          HEAD_SHA=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['head']['sha'])")
+          HEAD_REF=$(echo "$PR_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['head']['ref'])")
+          echo "number=$PR_NUMBER"   >> $GITHUB_OUTPUT
+          echo "base_sha=$BASE_SHA"  >> $GITHUB_OUTPUT
+          echo "head_sha=$HEAD_SHA"  >> $GITHUB_OUTPUT
+          echo "head_ref=$HEAD_REF"  >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Checkout HEAD del PR
+        run: git checkout ${{ steps.pr.outputs.head_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run QA Suggestion (Fase 0)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APP_ID:             ${{ secrets.APP_ID || 'tvnPass' }}
+          GH_TOKEN:           ${{ github.token }}   # DEC-05: GH_TOKEN explícito para gh CLI
+        run: |
+          chmod +x scripts/run_suggestion.sh
+          ./scripts/run_suggestion.sh \
+            "${{ steps.pr.outputs.number }}" \
+            "${{ steps.pr.outputs.base_sha }}" \
+            "${{ steps.pr.outputs.head_sha }}"
+
+      - name: Reaccionar al comentario (DONE)
+        if: success()
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='+1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Reaccionar al comentario (ERROR)
+        if: failure()
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='-1'
+        env:
+          GH_TOKEN: ${{ github.token }}
