@@ -1,7 +1,7 @@
-const { takeScreenshot }      = require('../../../../tests/helpers/screenshot');
+const { takeScreenshot } = require('../../../../tests/helpers/screenshot');
 const { pageContains, pageContainsAny } = require('../../../../tests/helpers/pageContains');
-const { waitFor }             = require('../../../../tests/helpers/waitFor');
-const { clickText }           = require('../../../../tests/helpers/clickHelper');
+const { waitFor } = require('../../../../tests/helpers/waitFor');
+const { clickText } = require('../../../../tests/helpers/clickHelper');
 const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ describe('TVN PASS - Live Player E2E', () => {
 
   // ─── 4. ENTRAR AL LIVE ───────────────────────────────────────────────────────
   it('04 - Entrar al player del live', async () => {
-    try { await clickText('Hoy'); } catch (_) {}
+    try { await clickText('Hoy'); } catch (_) { }
     await browser.pause(1000);
 
     const enVivo = await $('android=new UiSelector().text("EN VIVO").instance(0)');
@@ -96,7 +96,7 @@ describe('TVN PASS - Live Player E2E', () => {
               await takeScreenshot('05-ad-skipped');
               return true;
             }
-          } catch (_) {}
+          } catch (_) { }
         }
       }
 
@@ -136,9 +136,9 @@ describe('TVN PASS - Live Player E2E', () => {
     await takeScreenshot('07-player-controls');
 
     const controles = [
-      { name: 'pause/play',  words: ['pause', 'play', 'Pause', 'Play'] },
+      { name: 'pause/play', words: ['pause', 'play', 'Pause', 'Play'] },
       { name: 'mute/volume', words: ['mute', 'volume', 'Mute', 'Volume'] },
-      { name: 'fullscreen',  words: ['fullscreen', 'Fullscreen'] },
+      { name: 'fullscreen', words: ['fullscreen', 'Fullscreen'] },
       { name: 'ImageButton', words: ['android.widget.ImageButton'] },
     ];
 
