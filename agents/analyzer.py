@@ -148,7 +148,11 @@ def call_claude(trigger: dict, diff: str, app_id: str) -> dict:
         messages=[{"role": "user", "content": user_message}],
     )
 
-    raw = response.content[0].text
+    raw = response.content[0].text.strip()
+    # Haiku a veces envuelve el JSON en ```json ... ``` — lo extraemos
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
     return json.loads(raw)
 
 

@@ -77,17 +77,14 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Install deps
+        shell: bash
         run: |
           pip install -r requirements.txt
           npm install
 
       - name: Fase 2 — E2E Android
+        shell: bash
         env:
           ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'R5CTB1W92KY' }}
           ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
@@ -97,7 +94,6 @@ jobs:
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
         run: |
-          chmod +x scripts/run_android.sh
           APP_ID="${APP_ID}" bash scripts/run_android.sh
 
       - name: Upload Android reports
