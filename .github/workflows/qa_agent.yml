@@ -85,9 +85,7 @@ jobs:
           node-version: "20"
 
       - name: Install deps
-        run: |
-          pip install -r requirements.txt
-          npm install
+        run: npm install
 
       - name: Fase 2 — E2E Android
         shell: powershell
@@ -104,6 +102,7 @@ jobs:
           GH_TOKEN:              ${{ github.token }}
         run: |
           $env:PATH = "C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
+          python -m pip install -r requirements.txt --quiet
           if ($env:BASE_SHA -ne '') {
             # PR — flujo completo: Agente 1 + Agente 2 + tests
             bash scripts/run_on_pr.sh $env:PR_NUMBER $env:BASE_SHA $env:HEAD_SHA
