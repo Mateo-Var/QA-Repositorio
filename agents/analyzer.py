@@ -40,12 +40,12 @@ def load_compressed_session_log(app_id: str) -> str:
 
 def load_app_context(app_id: str) -> str:
     path = app_dir(app_id) / "app_context.md"
-    return path.read_text() if path.exists() else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 def load_dod_rules(app_id: str) -> str:
     path = app_dir(app_id) / "dod_rules.py"
-    return path.read_text() if path.exists() else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 # Mapeo de palabras clave en el diff → skills relevantes.
@@ -100,7 +100,7 @@ def load_skills(app_id: str, diff: str = "") -> str:
 
 
 def load_prompt() -> str:
-    with open(PROMPT_PATH) as f:
+    with open(PROMPT_PATH, encoding="utf-8") as f:
         return f.read()
 
 
@@ -185,8 +185,8 @@ if __name__ == "__main__":
     trigger_path = sys.argv[1] if len(sys.argv) > 1 else None
     diff_path = sys.argv[2] if len(sys.argv) > 2 else None
 
-    trigger = json.loads(Path(trigger_path).read_text()) if trigger_path else {"type": "manual"}
-    diff = Path(diff_path).read_text() if diff_path else ""
+    trigger = json.loads(Path(trigger_path).read_text(encoding="utf-8")) if trigger_path else {"type": "manual"}
+    diff = Path(diff_path).read_text(encoding="utf-8") if diff_path else ""
 
     result = run(trigger, diff, app_id)
     print(json.dumps(result, indent=2))
