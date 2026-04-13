@@ -146,4 +146,3 @@ APP_ID=tvnPass APP_PACKAGE=com.streann.tvnpass \
 3. **Fase 6** — Fastlane + Firebase App Distribution + Slack rich messages
 # Smoke test — Thu Apr  9 11:27:39 HPS 2026
 
-Ignora esto, sera para probar PR en actions.
