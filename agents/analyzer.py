@@ -153,6 +153,11 @@ def call_claude(trigger: dict, diff: str, app_id: str) -> dict:
     if raw.startswith("```"):
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
+    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start != -1 and end != -1:
+        raw = raw[start : end + 1]
     return json.loads(raw)
 
 

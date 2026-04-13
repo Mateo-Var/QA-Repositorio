@@ -219,14 +219,16 @@ def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edi
         if edit:
             # Intenta editar el último comentario del bot; si no existe, crea uno nuevo
             edit_result = subprocess.run(
-                base_cmd + ["--edit-last"], capture_output=True, text=True, timeout=30
+                base_cmd + ["--edit-last"], capture_output=True, text=True,
+                encoding="utf-8", timeout=30
             )
             if edit_result.returncode == 0:
                 print(f"✅ Comentario actualizado en PR #{pr_number}")
                 return True
             print("ℹ️  Sin comentario previo del bot, creando uno nuevo...")
 
-        result = subprocess.run(base_cmd, capture_output=True, text=True, timeout=30)
+        result = subprocess.run(base_cmd, capture_output=True, text=True,
+                                encoding="utf-8", timeout=30)
         if result.returncode == 0:
             print(f"✅ Comentario publicado en PR #{pr_number}")
             return True
