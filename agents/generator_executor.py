@@ -134,7 +134,8 @@ def execute_tests(input_json: dict) -> dict:
     }
 
     proc = subprocess.run(
-        ["npm", "run", "test:android"],
+        "npm run test:android",
+        shell=True,
         capture_output=True,
         text=True,
         cwd=android_path,
