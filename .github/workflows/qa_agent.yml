@@ -100,6 +100,7 @@ jobs:
           APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
+          APPIUM_HOME:           C:\Users\santi\.appium
         run: |
           $env:PATH = "C:\Program Files\GitHub CLI\;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
           python -m pip install -r requirements.txt --quiet
