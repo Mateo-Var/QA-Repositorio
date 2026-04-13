@@ -93,7 +93,8 @@ echo "Agente 2 completado."
 
 # ── 5. Comprimir contexto para la próxima sesión ─────────────────────────────
 echo "--- Comprimiendo contexto..."
-APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT"
+APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT" \
+  || echo "compress_context fallo — continuando sin comprimir"
 
 # ── 6. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───
 echo "--- Publicando comentario en PR #${PR_NUMBER}..."

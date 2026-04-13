@@ -85,7 +85,12 @@ def compress(agent2_output: dict) -> dict:
         system=COMPRESS_PROMPT,
         messages=[{"role": "user", "content": json.dumps(agent2_output, indent=2)}],
     )
-    return json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        import re
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    return json.loads(raw)
 
 
 def update_session_log(app_id: str, compressed: dict) -> None:
