@@ -161,7 +161,7 @@ def update_claude_md(app_id: str, compressed: dict) -> None:
     if not claude_md.exists():
         return
 
-    content = claude_md.read_text()
+    content = claude_md.read_text(encoding="utf-8")
     log_path = _session_log_path(app_id)
     if not log_path.exists():
         return
