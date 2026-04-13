@@ -192,7 +192,7 @@ def update_claude_md(app_id: str, compressed: dict) -> None:
         start_idx = content.index(auto_start, content.index(marker)) + len(auto_start)
         end_idx = content.index(auto_end, content.index(marker))
         new_content = content[:start_idx] + json.dumps(new_context, indent=2) + content[end_idx:]
-        claude_md.write_text(new_content)
+        claude_md.write_text(new_content, encoding="utf-8")
 
 
 def main():
