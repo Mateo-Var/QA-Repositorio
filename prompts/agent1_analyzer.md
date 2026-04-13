@@ -21,13 +21,25 @@ En UNA SOLA llamada, produce un JSON válido con esta estructura:
 ```json
 {
   "mode": "execute | generate",
+  "risk_level": "CRITICO | ALTO | MEDIO | BAJO",
+  "reason": "Una línea explicando por qué este nivel de riesgo",
+  "suggestions": [
+    {
+      "title": "Nombre del caso de prueba",
+      "description": "Qué verificar y cómo",
+      "priority": "CRITICO | ALTO | MEDIO | BAJO"
+    }
+  ],
+  "streaming_notes": [
+    "Nota sobre red/audio/vpn/geo/bitrate relevante para este diff"
+  ],
   "context": {
     "affected_flows": ["login", "live_player"],
     "change_summary": "Se modificó el componente de autenticación",
     "session_learnings": "Resumen de sesiones previas relevante"
   },
   "execute_request": {
-    "test_files": ["tests/tvn-pass-live.test.js"],
+    "test_files": ["apps/tvnPass/tests/e2e/tvn-pass-live.test.js"],
     "dod_tests": ["tvn-pass-live.test.js"],
     "device": "R5CTB1W92KY"
   }
@@ -39,7 +51,17 @@ O si decides generar nuevos tests:
 ```json
 {
   "mode": "generate",
-  "context": { "..." : "..." },
+  "risk_level": "ALTO",
+  "reason": "No existen tests para el flujo afectado",
+  "suggestions": [
+    {
+      "title": "login_email_happy_path",
+      "description": "Usuario ingresa credenciales válidas y llega a home screen",
+      "priority": "CRITICO"
+    }
+  ],
+  "streaming_notes": ["Verificar que el reproductor no crashea sin conexión"],
+  "context": { "affected_flows": ["login"] },
   "generate_request": {
     "flow": "login_email",
     "scenarios": ["happy_path", "credenciales_invalidas", "sin_conexion"],

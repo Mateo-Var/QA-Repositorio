@@ -88,7 +88,7 @@ jobs:
           npm install
 
       - name: Fase 2 — E2E Android
-        shell: pwsh
+        shell: powershell
         env:
           PR_NUMBER:             ${{ github.event.pull_request.number || github.event.inputs.pr_number || '0' }}
           BASE_SHA:              ${{ github.event.pull_request.base.sha || '' }}
