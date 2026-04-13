@@ -2,7 +2,7 @@
 
 > Resumen acumulado del estado del proyecto.
 > Se actualiza cuando el usuario lo pide.
-> Última actualización: 2026-04-08
+> Última actualización: 2026-04-13
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| **Fase 0** | Claude analiza el PR y publica comentario con sugerencias | ✅ Completo |
-| **Fase 1** | Unit tests Jest Android, cobertura mínima 70% | ✅ Completo |
-| **Fase 2** | E2E Android en dispositivo físico | ✅ Completo |
-| **Fase 3** | Claude valida con visión (screenshots + video) | ✅ Completo |
+| **Fase 0** | Claude analiza el PR y publica comentario con sugerencias | ✅ Completo · probado en CI |
+| **Fase 1** | Unit tests Jest Android, cobertura mínima 70% | ✅ Completo · 35/35 · 98.68% |
+| **Fase 2** | E2E Android en dispositivo físico + Agente 2 conectado | 🔧 En validación |
+| **Fase 3** | Claude valida con visión (screenshots + video) | ⏳ Pendiente Fase 2 |
 | **Fase 4** | Allure Report en GitHub Pages | ⏳ Pendiente |
 | **Fase 5** | Build AAB (Android) vía Fastlane | ⏳ Pendiente |
 | **Fase 6** | Distribución Firebase App Distribution + Slack | ⏳ Pendiente |
@@ -33,9 +33,9 @@
 | Agente | Archivo | Plataforma | Estado |
 |--------|---------|------------|--------|
 | Agente 0 | `agents/explorer_android.py` | Android (UiAutomator2) | ✅ Completo |
-| Agente 1 | `agents/analyzer.py` | Android | ✅ Completo |
-| Agente 2 | `agents/generator_executor.py` | Android | ✅ Completo |
-| Agente 3 | `agents/vision_validator.py` | Android (Claude Vision) | ✅ Completo |
+| Agente 1 | `agents/analyzer.py` | Android | ✅ Completo · Haiku · en Fase 0 |
+| Agente 2 | `agents/generator_executor.py` | Android | ✅ Completo · Haiku · en Fase 2 (PRs) |
+| Agente 3 | `agents/vision_validator.py` | Android (Claude Vision) | ✅ Completo · Sonnet · en Fase 3 |
 
 ---
 

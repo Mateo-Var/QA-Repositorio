@@ -11,6 +11,7 @@ Responsabilidad:
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -92,7 +93,11 @@ def generate_tests(input_json: dict) -> dict:
         messages=[{"role": "user", "content": json.dumps(context, indent=2)}],
     )
 
-    result = json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    result = json.loads(raw)
 
     generated = []
     for file_spec in result.get("files", []):
@@ -119,7 +124,7 @@ def execute_tests(input_json: dict) -> dict:
     reports_dir = ROOT / "reports" / app_id / "runs"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    android_path = tests_root()
+    android_path = ROOT  # package.json está en root, no en tests/
     env = {
         **os.environ,
         "ANDROID_DEVICE_NAME":   device,

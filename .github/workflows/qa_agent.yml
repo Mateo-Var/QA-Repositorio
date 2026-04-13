@@ -12,6 +12,11 @@ on:
         required: false
         default: "0"
 
+# Permisos globales — permite publicar comentarios en PRs
+permissions:
+  pull-requests: write
+  contents: read
+
 # ── Job 0: Sugerencia Claude (ubuntu, sin dispositivo) ───────────────────────
 jobs:
   suggest:
@@ -78,14 +83,16 @@ jobs:
           node-version: "20"
 
       - name: Install deps
-        shell: bash
         run: |
           pip install -r requirements.txt
           npm install
 
       - name: Fase 2 — E2E Android
-        shell: bash
+        shell: pwsh
         env:
+          PR_NUMBER:             ${{ github.event.pull_request.number || github.event.inputs.pr_number || '0' }}
+          BASE_SHA:              ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA:              ${{ github.event.pull_request.head.sha || '' }}
           ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'R5CTB1W92KY' }}
           ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
           ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
@@ -94,7 +101,14 @@ jobs:
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
         run: |
-          APP_ID="${APP_ID}" bash scripts/run_android.sh
+          $env:PATH = "C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
+          if ($env:BASE_SHA -ne '') {
+            # PR — flujo completo: Agente 1 + Agente 2 + tests
+            bash scripts/run_on_pr.sh $env:PR_NUMBER $env:BASE_SHA $env:HEAD_SHA
+          } else {
+            # workflow_dispatch manual — solo tests
+            bash scripts/run_android.sh
+          }
 
       - name: Upload Android reports
         if: always()
