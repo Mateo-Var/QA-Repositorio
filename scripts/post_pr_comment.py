@@ -244,6 +244,12 @@ def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edi
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
+    # Windows cp1252 no puede encodear emoji — forzar UTF-8 en stdout/stderr
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="Publica comentario de QA en un PR")
     parser.add_argument("--pr",      required=True, type=int, help="Número del PR")
     parser.add_argument("--agent1",  required=True, help="Path al JSON output del Agente 1")
