@@ -57,8 +57,9 @@ SKIP_NAMES = {
     "More options", "Navigation bar",
 }
 
-MAX_DEPTH = 3
-TAP_WAIT  = 2.5
+MAX_DEPTH  = 3
+TAP_WAIT   = 2.5
+MAX_SCROLLS = 5  # máximo de scrolls por pantalla
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -163,6 +164,39 @@ def go_back(driver) -> bool:
         return False
 
 
+def scroll_down(driver) -> bool:
+    """Scroll hacia abajo usando UiAutomator2."""
+    try:
+        size = driver.get_window_size()
+        w, h = size["width"], size["height"]
+        driver.swipe(w // 2, int(h * 0.75), w // 2, int(h * 0.25), 800)
+        time.sleep(1.2)
+        return True
+    except Exception:
+        return False
+
+
+def capture_all_elements(driver) -> list[dict]:
+    """Captura elementos haciendo scroll hasta el final de la pantalla."""
+    all_elements = []
+    seen_names = set()
+
+    for _ in range(MAX_SCROLLS):
+        new_elements = capture_elements(driver)
+        added = 0
+        for el in new_elements:
+            if el["name"] not in seen_names:
+                seen_names.add(el["name"])
+                all_elements.append(el)
+                added += 1
+
+        if added == 0:
+            break  # no hay elementos nuevos — llegamos al final
+        scroll_down(driver)
+
+    return all_elements
+
+
 # ── Screen Walker ─────────────────────────────────────────────────────────────
 
 class ScreenWalker:
@@ -227,7 +261,8 @@ class ScreenWalker:
             return
         self.visited_sigs.add(sig)
 
-        elements     = capture_elements(self.driver)
+        # Capturar todos los elementos con scroll
+        elements     = capture_all_elements(self.driver)
         actual_label = self._screen_label(trigger, depth)
         self.screens[actual_label] = {"trigger": trigger, "depth": depth, "elements": elements}
         self.nav_graph.setdefault(actual_label, [])
@@ -253,16 +288,35 @@ class ScreenWalker:
             self.nav_graph[actual_label].append(child_label)
             self.explore(child_label, trigger=f"tap:{name}", depth=depth + 1)
 
+            # Intentar volver: primero back, si falla tap al primer tab del bottom bar
             go_back(self.driver)
             time.sleep(TAP_WAIT)
 
             if screen_signature(self.driver) != pre_sig:
-                break  # no pudimos volver — terminar rama
+                # Back no funcionó — resetear vía primer tab del bottom bar
+                if self.bottom_bar:
+                    try_tap(self.driver, self.bottom_bar[0])
+                    time.sleep(TAP_WAIT)
+                # Si aún no volvimos, terminar esta rama
+                if screen_signature(self.driver) != pre_sig:
+                    break
+
+    def _explore_bottom_bar(self):
+        """Navega cada tab del bottom bar y lo mapea."""
+        if not self.bottom_bar:
+            return
+        print(f"\n  📊 Explorando {len(self.bottom_bar)} tabs del bottom bar...")
+        for tab in self.bottom_bar:
+            if try_tap(self.driver, tab):
+                time.sleep(TAP_WAIT)
+                self._wait_for_load(timeout=8)
+                self.explore(label=tab, trigger=f"tap_tab:{tab}", depth=1)
 
     def run(self) -> dict:
         print("\n🔍 Explorando la app Android...")
         self._wait_for_load()
         self.explore()
+        self._explore_bottom_bar()
         return {
             "screens":          self.screens,
             "navigation_graph": self.nav_graph,

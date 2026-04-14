@@ -162,13 +162,19 @@ def execute_tests(input_json: dict) -> dict:
         "stderr":      proc.stderr[-1000:],
     }, indent=2))
 
+    # Rutas de artefactos para Agent 3 y post_pr_comment
+    screenshots_dir = ROOT / "reports" / app_id / "screenshots" / run_id
+    video_path      = ROOT / "reports" / app_id / "videos" / f"qa_run_{run_id}.mp4"
+
     return {
-        "mode":          "execute",
-        "run_id":        run_id,
-        "dod_status":    dod_status,
-        "dod_failures":  dod_failures,
-        "exit_code":     proc.returncode,
-        "report_path":   str(run_log.relative_to(ROOT)),
+        "mode":             "execute",
+        "run_id":           run_id,
+        "dod_status":       dod_status,
+        "dod_failures":     dod_failures,
+        "exit_code":        proc.returncode,
+        "report_path":      str(run_log.relative_to(ROOT)),
+        "screenshots_dir":  str(screenshots_dir),
+        "video_path":       str(video_path),
         "knowledge_update": {
             "failed_tests": dod_failures,
             "device":       device,

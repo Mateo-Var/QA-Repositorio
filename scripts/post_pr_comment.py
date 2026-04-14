@@ -61,65 +61,90 @@ def formato_verdict(verdict: str) -> str:
     return f"{iconos.get(verdict, '⚪')} **{verdict.upper()}**"
 
 
-def build_vision_section(agent3: dict) -> list:
-    """Sección de validación visual (Fase 3). Vacía si no hay agent3."""
+def build_vision_section(agent3: dict, run_url: str = "") -> list:
+    """
+    Sección de validación visual (Fase 3).
+
+    Si todo pasó  → lista las 3 fotos happy path + video.
+    Si algo falló → lista capturas del error + diagnóstico + recomendaciones.
+    """
     if not agent3 or not agent3.get("vision_verdict"):
         return []
 
-    verdict        = agent3.get("vision_verdict", "unknown")
-    block_merge    = agent3.get("block_merge", False)
-    diagnosis      = agent3.get("diagnosis", "")
-    findings       = agent3.get("findings", [])
-    blocking_reason = agent3.get("blocking_reason")
-    recommendations = agent3.get("recommendations", [])
-    video_path     = agent3.get("video_path")
-    selected_images = agent3.get("selected_images", {})
+    verdict          = agent3.get("vision_verdict", "unknown")
+    block_merge      = agent3.get("block_merge", False)
+    diagnosis        = agent3.get("diagnosis", "")
+    findings         = agent3.get("findings", [])
+    blocking_reason  = agent3.get("blocking_reason")
+    recommendations  = agent3.get("recommendations", [])
+    video_path       = agent3.get("video_path")
+    selected_images  = agent3.get("selected_images", {})
 
-    lines = [
-        "### 👁️ Validación Visual — Claude",
-        "",
-        f"**Veredicto:** {formato_verdict(verdict)}",
-    ]
+    happy_paths = selected_images.get("happy_path", [])
+    failures    = selected_images.get("failures", [])
+
+    artifacts_link = f"[📁 Descargar artifacts]({run_url})" if run_url.startswith("http") else ""
+
+    lines = ["### 👁️ Validación Visual — Claude", ""]
 
     if block_merge and blocking_reason:
-        lines += ["", f"> 🚨 **Merge bloqueado:** {blocking_reason}", ""]
+        lines += [f"🚨 **Merge bloqueado:** {blocking_reason}", ""]
 
-    if diagnosis:
-        lines += [f"> {diagnosis}", ""]
+    if verdict == "passed":
+        # ── PASÓ: mostrar fotos happy path + video ───────────────────────────
+        lines += [f"**Veredicto:** {formato_verdict(verdict)}", ""]
 
-    # Findings
-    if findings:
-        lines += ["**Observaciones por pantalla:**", ""]
-        severity_icon = {"blocking": "🚨", "warning": "⚠️", "ok": "✅"}
-        for f in findings:
-            icon = severity_icon.get(f.get("severity", "ok"), "⚪")
-            lines.append(f"- {icon} `{f.get('screenshot', '')}` — {f.get('observation', '')}")
-        lines.append("")
+        if diagnosis:
+            lines += [f"> {diagnosis}", ""]
 
-    # Screenshots capturadas
-    happy = selected_images.get("happy_path", [])
-    failures = selected_images.get("failures", [])
-    if happy or failures:
-        lines += ["**Artefactos capturados:**", ""]
-        if happy:
-            lines.append(f"- Happy path: {len(happy)} screenshot(s)")
+        if happy_paths:
+            lines += ["**Screenshots — Happy path:**", ""]
+            for p in happy_paths:
+                lines.append(f"- `{Path(p).name}`")
+            lines.append("")
+
+        if video_path and Path(video_path).exists():
+            lines += [f"**Video de la sesión:** `{Path(video_path).name}`", ""]
+
+        if artifacts_link:
+            lines += [artifacts_link, ""]
+
+    else:
+        # ── FALLÓ: capturas del error + diagnóstico + recomendaciones ────────
+        lines += [f"**Veredicto:** {formato_verdict(verdict)}", ""]
+
+        if diagnosis:
+            lines += ["**Diagnóstico:**", f"> {diagnosis}", ""]
+
         if failures:
-            lines.append(f"- Failures: {len(failures)} screenshot(s)")
-        if video_path:
-            lines.append(f"- Video: `{Path(video_path).name}`")
-        lines += ["", "_Screenshots y video disponibles en los artifacts del run._", ""]
+            lines += ["**Screenshots del error:**", ""]
+            for p in failures:
+                lines.append(f"- `{Path(p).name}`")
+            lines.append("")
 
-    # Recomendaciones
-    if recommendations:
-        lines += ["**Recomendaciones:**", ""]
-        for r in recommendations:
-            lines.append(f"- {r}")
-        lines.append("")
+        # Findings por pantalla
+        if findings:
+            severity_icon = {"blocking": "🚨", "warning": "⚠️", "ok": "✅"}
+            lines += ["**Observaciones:**", ""]
+            for f in findings:
+                icon = severity_icon.get(f.get("severity", "ok"), "⚪")
+                lines.append(f"- {icon} `{f.get('screenshot', '')}` — {f.get('observation', '')}")
+            lines.append("")
+
+        # Recomendaciones
+        if recommendations:
+            lines += ["**Qué corregir:**", ""]
+            for r in recommendations:
+                lines.append(f"- {r}")
+            lines.append("")
+
+        if artifacts_link:
+            lines += [artifacts_link, ""]
 
     return lines
 
 
-def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None = None) -> str:
+def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None = None, run_url: str = "") -> str:
     app_id      = agent1.get("app_id", "desconocido")
     risk        = agent1.get("risk_level", "DESCONOCIDO")
     razon       = agent1.get("reason", "")
@@ -189,7 +214,7 @@ def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None =
         lines.append("")
 
     # ── Validación visual (Fase 3) ────────────────────────────────────────────
-    vision_lines = build_vision_section(agent3 or {})
+    vision_lines = build_vision_section(agent3 or {}, run_url=run_url)
     if vision_lines:
         lines += vision_lines
 
@@ -261,6 +286,7 @@ def main():
     parser.add_argument("--repo",    default=None,  help="owner/repo (opcional)")
     parser.add_argument("--dry-run", action="store_true", help="Imprimir sin publicar")
     parser.add_argument("--edit",    action="store_true", help="Editar el último comentario del bot en lugar de crear uno nuevo")
+    parser.add_argument("--run-url", default="", help="URL del run de GitHub Actions para link de artifacts")
     args = parser.parse_args()
 
     try:
@@ -282,7 +308,7 @@ def main():
         except Exception as e:
             print(f"⚠️  No se pudo leer agent3 output: {e}")
 
-    comment = build_comment(agent1, agent2, args.run_id, agent3)
+    comment = build_comment(agent1, agent2, args.run_id, agent3, run_url=args.run_url)
     post_comment(args.pr, comment, args.repo, args.dry_run, args.edit)
 
     # DEC-06: no bloquear el pipeline si gh falla

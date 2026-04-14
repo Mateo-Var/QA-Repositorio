@@ -71,6 +71,8 @@ DIFF_FILE="${TMP_DIR}/qa_diff.txt"
 TRIGGER_FILE="${TMP_DIR}/qa_trigger.json"
 AGENT1_OUTPUT="${TMP_DIR}/qa_agent1_output.json"
 AGENT2_OUTPUT="${TMP_DIR}/qa_agent2_output.json"
+AGENT3_INPUT="${TMP_DIR}/qa_agent3_input.json"
+AGENT3_OUTPUT="${TMP_DIR}/qa_agent3_output.json"
 
 # ── 1. Generar diff del PR ────────────────────────────────────────────────────
 git diff "${BASE_SHA}..${HEAD_SHA}" > "$DIFF_FILE"
@@ -104,17 +106,45 @@ echo "--- Comprimiendo contexto..."
 APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT" \
   || echo "compress_context fallo — continuando sin comprimir"
 
-# ── 6. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───
+# ── 6. Ejecutar Agente 3 (Validador Visual) ───────────────────────────────────
+echo "--- Agente 3: Validando screenshots con Claude Vision..."
+# Construir input JSON de Agent 3 usando Python para manejar rutas Windows
+python - "$AGENT2_OUTPUT" "$AGENT3_INPUT" "${APP_ID}" <<'PYEOF'
+import json, sys
+agent2_path, agent3_path, app_id = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(agent2_path, encoding="utf-8") as f:
+    d = json.load(f)
+agent3_input = {
+    "run_id":          d.get("run_id", ""),
+    "app_id":          app_id,
+    "dod_status":      d.get("dod_status", "unknown"),
+    "dod_failures":    d.get("dod_failures", []),
+    "screenshots_dir": d.get("screenshots_dir", ""),
+    "video_path":      d.get("video_path", ""),
+}
+with open(agent3_path, "w", encoding="utf-8") as f:
+    json.dump(agent3_input, f, indent=2)
+PYEOF
+
+python agents/vision_validator.py "$AGENT3_INPUT" > "$AGENT3_OUTPUT" \
+  || echo "vision_validator fallo — continuando sin Fase 3"
+
+# URL del run de GitHub Actions para el enlace de artifacts en el PR
+RUN_URL="${GITHUB_SERVER_URL:-}/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_ACTIONS_RUN_ID:-}"
+
+# ── 7. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───
 echo "--- Publicando comentario en PR #${PR_NUMBER}..."
 python scripts/post_pr_comment.py \
   --pr "${PR_NUMBER}" \
   --agent1 "$AGENT1_OUTPUT" \
   --agent2 "$AGENT2_OUTPUT" \
+  --agent3 "$AGENT3_OUTPUT" \
   --run-id "${RUN_ID}" \
+  --run-url "${RUN_URL}" \
   --edit \
   || echo "post_pr_comment fallo — continuando sin comentario"
 
-# ── 7. Verificar DOD status ───────────────────────────────────────────────────
+# ── 8. Verificar DOD status ───────────────────────────────────────────────────
 DOD_STATUS=$(python -c "
 import json
 data = json.load(open('$AGENT2_OUTPUT'))

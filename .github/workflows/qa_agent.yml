@@ -99,11 +99,14 @@ jobs:
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
           APPIUM_HOME:           C:\Users\santi\.appium
+          GITHUB_SERVER_URL:     ${{ github.server_url }}
+          GITHUB_REPOSITORY:     ${{ github.repository }}
+          GITHUB_ACTIONS_RUN_ID: ${{ github.run_id }}
         run: |
           $env:PATH = "C:\Program Files\GitHub CLI\;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
           python -m pip install -r requirements.txt --quiet
           if ($env:BASE_SHA -ne '') {
-            # PR — flujo completo: Agente 1 + Agente 2 + tests
+            # PR — flujo completo: Agente 1 + Agente 2 + Agente 3 + tests
             bash scripts/run_on_pr.sh $env:PR_NUMBER $env:BASE_SHA $env:HEAD_SHA
           } else {
             # workflow_dispatch manual — solo tests
@@ -118,59 +121,10 @@ jobs:
           path: reports/
           retention-days: 14
 
-# ── Job 3: Validación Visual Claude ──────────────────────────────────────────
-  vision-validate:
-    name: "Fase 3 — Validación Visual Claude"
-    needs: e2e-android
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Python deps
-        run: pip install -r requirements.txt
-
-      - name: Download Android reports
-        uses: actions/download-artifact@v4
-        with:
-          name: android-reports-${{ github.run_id }}
-          path: reports/
-        continue-on-error: true
-
-      - name: Fase 3 — Validación Visual
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          APP_ID:            ${{ secrets.APP_ID || 'tvnPass' }}
-          GH_TOKEN:          ${{ github.token }}
-        run: |
-          AGENT2=$(ls -t /tmp/qa_agent2_output_*.json 2>/dev/null | head -1 || echo "")
-          if [[ -z "$AGENT2" ]]; then
-            echo "⚠️  No se encontró agent2 output. Skipping Fase 3."
-            exit 0
-          fi
-          RUN_ID=$(basename "$AGENT2" | sed 's/qa_agent2_output_//' | sed 's/\.json//')
-          chmod +x scripts/run_vision.sh
-          ./scripts/run_vision.sh \
-            "${{ github.event.inputs.pr_number || 0 }}" \
-            "$AGENT2" \
-            "$RUN_ID"
-
-      - name: Upload vision reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: vision-reports-${{ github.run_id }}
-          path: reports/
-          retention-days: 14
-
-# ── Job 4: Nightly Android ────────────────────────────────────────────────────
+# ── Job 3: Nightly Android ───────────────────────────────────────────────────
+# Nota: Fase 3 (Validación Visual) corre dentro de run_on_pr.sh en el runner
+# self-hosted donde los screenshots están disponibles localmente. No necesita
+# un job separado.
   nightly:
     name: "Nightly — Android"
     runs-on: [self-hosted, android]   # Windows ahora / Mac Mini después — mismo label

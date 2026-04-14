@@ -1,0 +1,205 @@
+{
+  "app_id": "tvnPass",
+  "platform": "android",
+  "package": "com.streann.tvnpass",
+  "activity": "com.streann.tvnpass.MainActivity",
+  "device": "192.168.1.129:5555",
+  "explored_at": "2026-04-14T16:17:50.648068+00:00",
+  "version": "1.0.0",
+  "screens": {
+    "en_vivo": {
+      "trigger": "app_launch",
+      "depth": 0,
+      "elements": [
+        {
+          "type": "FrameLayout",
+          "class": "android.widget.FrameLayout",
+          "name": "Mostrar controles del reproductor",
+          "resource": "com.streann.tvnpass:id/player_view",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Anteayer",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Ayer",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Hoy",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Mañana",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "PROGRAMACIÓN ANTERIOR",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "SIN PROGRAMACIÓN, A CONTINUACIÓN: TVN NOTICIAS EDICIÓN ESTELAR",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "SIN PROGRAMACIÓN, A CONTINUACIÓN: IV JUEGOS SURAMERICANOS DE LA JUVENTUD 2026",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO, 09:30 - 12:00 (2H 30M), Jelou Break con Amanda Díaz y Oscar Ruíz",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "VER TODO",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "TVN RADIO",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "Inicio",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "Explorar",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "Buscar",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "Menú",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Programación",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "11:16",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "11:30",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "SIN PROGRAMACIÓN",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "A CONTINUACIÓN: TVN NOTICIAS EDICIÓN ESTELAR",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "A CONTINUACIÓN: IV JUEGOS SURAMERICANOS DE LA JUVENTUD 2026",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "09:30 - 12:00 (2H 30M)",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Jelou Break con Amanda Díaz y Oscar Ruíz",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "ESTACIONES DE RADIO",
+          "resource": "null",
+          "clickable": false
+        }
+      ]
+    }
+  },
+  "navigation_graph": {
+    "en_vivo": []
+  },
+  "bottom_bar": [
+    "EN VIVO",
+    "09:30 - 12:00 (2H 30M)",
+    "Jelou Break con Amanda Díaz y Oscar Ruíz",
+    "ESTACIONES DE RADIO",
+    "VER TODO",
+    "TVN RADIO"
+  ],
+  "total_screens": 1,
+  "total_elements": 25
+}

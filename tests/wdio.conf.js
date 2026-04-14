@@ -69,24 +69,79 @@ exports.config = {
     timeout: 240000,
   },
 
-  reporters: [
-    'spec',
-    ['video', {
-      saveAllVideos:            true,
-      videoSlowdownMultiplier:  3,
-      outputDir: path.resolve(__dirname, '../reports', APP_ID, 'videos'),
-    }],
-  ],
+  reporters: ['spec'],
+
+  // ── Screenshot automático por test ────────────────────────────────────────
+  // afterEach guarda screenshot en happy_path/ si pasó, failures/ si falló.
+  // Los paths usan el mismo RUN_ID que el video para agrupar los artefactos.
+  async afterEach(test, _ctx, result) {
+    const { takeScreenshot } = require('./helpers/screenshot');
+    const type = result.passed ? 'happy_path' : 'failures';
+    const raw  = (test.fullTitle || test.title || 'test')
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase()
+      .slice(0, 60);
+    try {
+      await takeScreenshot(raw, type);
+    } catch (e) {
+      console.warn(`[screenshot] No se pudo capturar "${raw}": ${e.message}`);
+    }
+  },
 
   async before() {
-    const fs = require('fs');
+    const fs    = require('fs');
+    const cp    = require('child_process');
+
+    const videosDir = path.resolve(__dirname, '../reports', APP_ID, 'videos');
     [
       path.resolve(__dirname, '../reports', APP_ID, 'screenshots'),
       path.resolve(__dirname, '../reports', APP_ID, 'logs'),
-      path.resolve(__dirname, '../reports', APP_ID, 'videos'),
+      videosDir,
     ].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
 
     await browser.setTimeout({ implicit: 0 });
+
+    // Grabación completa de pantalla via ADB screenrecord
+    const device  = process.env.ANDROID_DEVICE_NAME || DEVICE;
+    const runId   = process.env.QA_RUN_ID || Date.now().toString();
+    const remote  = `/sdcard/qa_run_${runId}.mp4`;
+    const local   = path.join(videosDir, `qa_run_${runId}.mp4`);
+
+    global.__screenrecordRemote = remote;
+    global.__screenrecordLocal  = local;
+    global.__screenrecordDevice = device;
+
+    // Inicia grabación en background (max 3min por limitación de Android)
+    global.__screenrecordProc = cp.spawn(
+      'adb', ['-s', device, 'shell', 'screenrecord', '--time-limit', '180', remote],
+      { detached: true, stdio: 'ignore' }
+    );
+    console.log(`[video] Grabación iniciada → ${remote}`);
+  },
+
+  async after() {
+    const cp = require('child_process');
+    const device = global.__screenrecordDevice;
+    const remote = global.__screenrecordRemote;
+    const local  = global.__screenrecordLocal;
+    if (!device || !remote) return;
+
+    // Detener grabación
+    try {
+      cp.execSync(`adb -s ${device} shell pkill -f screenrecord`, { stdio: 'ignore' });
+    } catch (_) {}
+
+    // Esperar que el archivo se cierre
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Descargar video del dispositivo
+    try {
+      cp.execSync(`adb -s ${device} pull ${remote} ${local}`);
+      cp.execSync(`adb -s ${device} shell rm ${remote}`, { stdio: 'ignore' });
+      console.log(`[video] Video guardado → ${local}`);
+    } catch (e) {
+      console.warn(`[video] No se pudo descargar el video: ${e.message}`);
+    }
   },
 
   onComplete() {
