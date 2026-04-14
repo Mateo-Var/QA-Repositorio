@@ -134,7 +134,7 @@ def execute_tests(input_json: dict) -> dict:
     # aún no existen en el repo (primer run después de borrar los tests).
     spec_dir = e2e_dir(app_id)
     if not spec_dir.exists() or not list(spec_dir.glob("*.test.js")):
-        print(f"[guardia] No hay .test.js en {spec_dir} — generando tests primero...")
+        print(f"[guardia] No hay .test.js en {spec_dir} — generando tests primero...", file=sys.stderr)
         gen_input = {
             "app_id": app_id,
             "generate_request": input_json.get("generate_request") or {
@@ -144,7 +144,7 @@ def execute_tests(input_json: dict) -> dict:
             "context": input_json.get("context", {}),
         }
         gen_result = generate_tests(gen_input)
-        print(f"[guardia] Generados: {gen_result.get('generated_files', [])}")
+        print(f"[guardia] Generados: {gen_result.get('generated_files', [])}", file=sys.stderr)
 
     run_id      = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     reports_dir = ROOT / "reports" / app_id / "runs"
