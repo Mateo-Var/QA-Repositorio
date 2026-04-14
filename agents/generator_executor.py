@@ -155,8 +155,8 @@ def execute_tests(input_json: dict) -> dict:
         **os.environ,
         "ANDROID_DEVICE_NAME":   device,
         "QA_RUN_ID":             run_id,
-        "ANDROID_APP_PACKAGE":   os.environ.get("ANDROID_APP_PACKAGE", "com.streann.tvnpass"),
-        "ANDROID_APP_ACTIVITY":  os.environ.get("ANDROID_APP_ACTIVITY", "com.streann.tvnpass.MainActivity"),
+        "ANDROID_APP_PACKAGE":   os.environ.get("ANDROID_APP_PACKAGE", "com.streann.tvnpass").strip(),
+        "ANDROID_APP_ACTIVITY":  os.environ.get("ANDROID_APP_ACTIVITY", "com.streann.tvnpass.MainActivity").strip(),
     }
 
     proc = subprocess.run(

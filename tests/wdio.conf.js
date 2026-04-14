@@ -12,13 +12,13 @@ process.env.PATH         = `${ADB_PATH};${JAVA_HOME}\\bin;${process.env.PATH}`;
 
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
 // APP_ID determina qué specs se cargan — un solo runner, múltiples apps
-const APP_ID       = process.env.APP_ID             || 'tvnPass';
+const APP_ID       = (process.env.APP_ID             || 'tvnPass').trim();
 // WiFi ADB: ANDROID_DEVICE_NAME debe ser IP:puerto → ej. 192.168.1.50:5555
 // USB ADB:  puede ser el serial → ej. R5CTB1W92KY
-const DEVICE       = process.env.ANDROID_DEVICE_NAME || '192.168.1.50:5555';
-const APP_PACKAGE  = process.env.ANDROID_APP_PACKAGE  || 'com.streann.tvnpass';
-const APP_ACTIVITY = process.env.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity';
-const APPIUM_URL   = process.env.APPIUM_SERVER_URL    || 'http://localhost:4723';
+const DEVICE       = (process.env.ANDROID_DEVICE_NAME || '192.168.1.50:5555').trim();
+const APP_PACKAGE  = (process.env.ANDROID_APP_PACKAGE  || 'com.streann.tvnpass').trim();
+const APP_ACTIVITY = (process.env.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity').trim();
+const APPIUM_URL   = (process.env.APPIUM_SERVER_URL    || 'http://localhost:4723').trim();
 
 const specsPath = path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/*.test.js`);
 
