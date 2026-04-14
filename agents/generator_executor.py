@@ -96,23 +96,40 @@ def generate_tests(input_json: dict) -> dict:
         "app_context":       app_ctx_text,
     }
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=8096,
-        system=load_prompt(),
-        messages=[{"role": "user", "content": json.dumps(context, indent=2)}],
-    )
+    messages = [{"role": "user", "content": json.dumps(context, indent=2)}]
+    result = None
+    last_err = None
 
-    raw = response.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
-    start = raw.find("{")
-    end = raw.rfind("}")
-    if start != -1 and end != -1:
-        raw = raw[start : end + 1]
-    result = json.loads(raw)
+    for attempt in range(2):
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=8096,
+            system=load_prompt(),
+            messages=messages,
+        )
+        raw = response.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start != -1 and end != -1:
+            raw = raw[start : end + 1]
+        try:
+            result = json.loads(raw)
+            break
+        except json.JSONDecodeError as e:
+            last_err = e
+            print(f"[generator] Intento {attempt+1}: JSON inválido — {e}. Reintentando...", file=sys.stderr)
+            # En el reintento, recordar al modelo la regla de comillas
+            messages.append({"role": "assistant", "content": raw})
+            messages.append({"role": "user", "content": (
+                "El JSON anterior no es válido. RECUERDA: usa SOLO comillas simples "
+                "en el código JavaScript dentro del campo 'content'. Devuelve SOLO JSON válido."
+            )})
+
+    if result is None:
+        raise ValueError(f"Agent 2 no devolvió JSON válido tras 2 intentos: {last_err}")
 
     generated = []
     for file_spec in result.get("files", []):

@@ -180,3 +180,16 @@ No crees archivos duplicados.
 ## Formato de salida
 SOLO JSON. Sin texto antes ni después. Sin markdown. El JSON debe ser válido.
 Los archivos generados van en `files[].content` como string completo.
+
+### CRÍTICO — comillas en el código JavaScript
+El campo `content` es un string JSON. Las comillas dobles dentro del código JS rompen el JSON.
+**Usa SIEMPRE comillas simples en el código JavaScript generado:**
+```javascript
+// Correcto (no rompe el JSON):
+const email = process.env.TEST_USER_EMAIL || 'qa@test.com';
+expect(visible).toBe(true);
+
+// INCORRECTO (rompe el JSON):
+const email = process.env.TEST_USER_EMAIL || "qa@test.com";
+```
+Nunca uses comillas dobles en el código JS del `content`. Solo en los keys y valores del JSON de respuesta.
