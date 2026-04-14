@@ -12,8 +12,44 @@ Según el modo indicado por el Agente 1:
 - JavaScript (CommonJS — `require`, no `import`)
 - WebdriverIO 9.x + Mocha
 - Appium 2.x + UiAutomator2
-- Device físico Samsung (serial: R5CTB1W92KY) vía WiFi ADB
+- Device físico Samsung vía WiFi ADB
 - Helpers disponibles en `tests/helpers/`: `waitFor.js`, `pageContains.js`, `clickHelper.js`, `appState.js`, `screenshot.js`
+
+## Rutas de helpers — CRÍTICO
+Los tests se guardan en `apps/{app_id}/tests/e2e/`.
+Los helpers están en `tests/helpers/` en la raíz del repo.
+La ruta relativa correcta desde cualquier test es siempre:
+
+```javascript
+const { waitForElement, waitForText } = require('../../../../tests/helpers/waitFor');
+const { pageContains }               = require('../../../../tests/helpers/pageContains');
+const { clickElement }               = require('../../../../tests/helpers/clickHelper');
+const { normalizarEstadoApp }        = require('../../../../tests/helpers/appState');
+const { takeScreenshot }             = require('../../../../tests/helpers/screenshot');
+```
+
+NUNCA usar `../helpers/` — esa ruta no existe y causará `Cannot find module`.
+
+## Cómo usar las fuentes de contexto
+
+Recibirás dos fuentes de contexto en el input. Úsalas con esta prioridad:
+
+### 1. `ui_map` — fuente de verdad para selectores (MAYOR PRIORIDAD)
+Contiene los elementos reales encontrados en el dispositivo por el Agente 0 (Explorer).
+- Usa los `name` de los elementos como accessibility labels: `'~Nombre del elemento'`
+- Usa los `resource` como resource-id: `'id:com.pkg:id/nombre'`
+- **Si un flujo no aparece en `ui_map.screens`, NO generes tests para ese flujo.**
+- Si la pantalla de login no está en el UI map, NO generes tests de login.
+- Basa los selectores exclusivamente en lo que el UI map describe — no inventes elementos.
+
+### 2. `app_context` — fuente de verdad para prioridades de negocio (MENOR PRIORIDAD)
+Describe qué flujos son DOD-críticos y el propósito de la app.
+- Úsalo para decidir qué flujos testear primero.
+- Si contradice al UI map (ej: dice "hay login" pero el UI map no lo muestra), el UI map gana.
+
+### Regla de oro
+> Genera tests solo para lo que puedas ver en `ui_map.screens`.
+> Usa `app_context` para priorizar, no para inventar elementos.
 
 ## Modo: generate
 
@@ -24,7 +60,7 @@ Un JSON con esta estructura:
 {
   "files": [
     {
-      "filename": "test_login_email.test.js",
+      "filename": "test_reproductor_live.test.js",
       "content": "// contenido completo del archivo"
     }
   ],
@@ -40,8 +76,8 @@ Un JSON con esta estructura:
 **Nombres de tests:**
 ```javascript
 // Correcto:
-it('login_email_credenciales_invalidas_muestra_error', async () => { ... })
 it('reproductor_live_carga_sin_error', async () => { ... })
+it('busqueda_termino_valido_muestra_resultados', async () => { ... })
 
 // Incorrecto:
 it('test login', async () => { ... })
@@ -50,27 +86,21 @@ it('test1', async () => { ... })
 
 **Siempre usar helpers — NUNCA inline:**
 ```javascript
-const { waitForElement, waitForText } = require('../helpers/waitFor');
-const { pageContains }               = require('../helpers/pageContains');
-const { clickElement }               = require('../helpers/clickHelper');
-const { normalizarEstadoApp }        = require('../helpers/appState');
-const { takeScreenshot }             = require('../helpers/screenshot');
-
 // Correcto:
-await waitForElement('~Iniciar sesión', 5000);
-await clickElement('~Iniciar sesión');
+await waitForElement('~EN VIVO', 5000);
+await clickElement('~Buscar');
 
 // NUNCA:
 await browser.pause(3000);
-await $('~Iniciar sesión').waitForDisplayed({ timeout: 3000 });
+await $('~EN VIVO').waitForDisplayed({ timeout: 3000 });
 ```
 
 **Selectores Android — en orden de preferencia:**
 ```javascript
-'~content-desc'          // 1. Mejor: accessibility label (tilde prefix)
-'id:com.pkg:id/nombre'   // 2. resource-id estable
-'**/XCUIElementTypeButton[`label == "texto"`]'  // NO — esto es iOS
-'android=new UiSelector().text("texto")'         // 3. texto visible
+'~content-desc'                           // 1. Mejor: accessibility label del UI map
+'id:com.pkg:id/nombre'                    // 2. resource-id estable del UI map
+'android=new UiSelector().text("texto")'  // 3. texto visible como fallback
+// Nunca xpath ni selectores iOS
 ```
 
 **Estado inicial — SIEMPRE normalizar:**
@@ -83,10 +113,10 @@ before(async () => {
 **Verificación de presencia — usar pageContains, no findElement:**
 ```javascript
 // Correcto (3-5x más rápido):
-const visible = await pageContains('Bienvenido');
+const visible = await pageContains('EN VIVO');
 
 // Incorrecto:
-const el = await $('~Bienvenido');
+const el = await $('~EN VIVO');
 await el.waitForDisplayed();
 ```
 
@@ -94,8 +124,8 @@ await el.waitForDisplayed();
 ```javascript
 // Los timeouts DOD están definidos en apps/{app_id}/dod_rules.py
 // Usar estos valores como referencia:
-// login: 5000ms | video_buffer: 3000ms | busqueda: 2000ms | onboarding: 60000ms
-await waitForElement('~Home', 5000);
+// video_buffer: 10000ms | busqueda: 2000ms | logout: 3000ms
+await waitForElement('~EN VIVO', 10000);
 ```
 
 **Credenciales — siempre desde process.env:**
@@ -106,16 +136,18 @@ const password = process.env.TEST_USER_PASSWORD || 'test1234';
 ```
 
 ### Estructura de un test bien formado
+Ejemplo basado en una app que abre directo al reproductor (sin login), con navegación inferior Inicio/Explorar/Buscar/Menú:
+
 ```javascript
 'use strict';
 
-const { waitForElement, waitForText } = require('../helpers/waitFor');
-const { pageContains }               = require('../helpers/pageContains');
-const { clickElement }               = require('../helpers/clickHelper');
-const { normalizarEstadoApp }        = require('../helpers/appState');
-const { takeScreenshot }             = require('../helpers/screenshot');
+const { waitForElement }      = require('../../../../tests/helpers/waitFor');
+const { pageContains }        = require('../../../../tests/helpers/pageContains');
+const { clickElement }        = require('../../../../tests/helpers/clickHelper');
+const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
+const { takeScreenshot }      = require('../../../../tests/helpers/screenshot');
 
-describe('Login Email — Android', () => {
+describe('Reproductor Live — tvnPass Android', () => {
 
   before(async () => {
     await normalizarEstadoApp();
@@ -129,24 +161,17 @@ describe('Login Email — Android', () => {
     }
   });
 
-  it('login_email_happy_path_llega_a_home', async () => {
-    await clickElement('~Iniciar sesión');
-    await waitForElement('~Campo email', 3000);
-    await $('~Campo email').setValue(process.env.TEST_USER_EMAIL);
-    await $('~Campo password').setValue(process.env.TEST_USER_PASSWORD);
-    await clickElement('~Entrar');
-    const home = await pageContains('Inicio');
-    expect(home).toBe(true);
+  it('reproductor_live_carga_player_en_pantalla', async () => {
+    // DOD-03: Buffer inicial completado en 10s
+    const playerVisible = await pageContains('EN VIVO');
+    expect(playerVisible).toBe(true);
   });
 
-  it('login_email_credenciales_invalidas_muestra_error', async () => {
-    await clickElement('~Iniciar sesión');
-    await waitForElement('~Campo email', 3000);
-    await $('~Campo email').setValue('invalido@test.com');
-    await $('~Campo password').setValue('wrongpass');
-    await clickElement('~Entrar');
-    const error = await pageContains('Credenciales incorrectas');
-    expect(error).toBe(true);
+  it('reproductor_live_controles_visibles_al_tocar', async () => {
+    await clickElement('~Mostrar controles del reproductor');
+    await waitForElement('~Mostrar controles del reproductor', 5000);
+    const ctrl = await pageContains('Programación');
+    expect(ctrl).toBe(true);
   });
 
 });

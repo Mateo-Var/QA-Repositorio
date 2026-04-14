@@ -76,6 +76,14 @@ def generate_tests(input_json: dict) -> dict:
 
     gen_request = _resolve_request(input_json, "generate_request", "generate")
 
+    # Cargar UI map — fuente de verdad para selectores reales
+    ui_map_path = app_dir(app_id) / "ui_map_android.json"
+    ui_map = json.loads(ui_map_path.read_text()) if ui_map_path.exists() else {}
+
+    # Cargar app_context — fuente de verdad para prioridades de negocio
+    app_ctx_path = app_dir(app_id) / "app_context.md"
+    app_ctx_text = app_ctx_path.read_text() if app_ctx_path.exists() else ""
+
     context = {
         "mode":              "generate",
         "platform":          "android",
@@ -84,6 +92,8 @@ def generate_tests(input_json: dict) -> dict:
         "existing_tests":    list_existing_tests(app_id),
         "existing_helpers":  list_existing_helpers(),
         "agent_context":     input_json.get("context", {}),
+        "ui_map":            ui_map,
+        "app_context":       app_ctx_text,
     }
 
     response = client.messages.create(
