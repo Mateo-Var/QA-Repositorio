@@ -99,7 +99,7 @@ echo "Agente 1 completado."
 # ── 4. Ejecutar Agente 2 Android (Generador/Ejecutor) ────────────────────────
 # Guardia: si no existen .test.js en disco, forzar mode=generate en el output
 # de Agent 1 sin importar lo que decidió. Evita "No specs found" en wdio.
-TEST_COUNT=$(find "apps/${APP_ID}/tests/e2e" -name "*.test.js" 2>/dev/null | wc -l | tr -d ' ')
+TEST_COUNT=$(find "apps/${APP_ID}/tests/e2e" -name "*.test.js" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
 if [ "$TEST_COUNT" = "0" ]; then
   echo "--- Guardia: no hay .test.js — forzando mode=generate en Agent 1 output..."
   python - "$AGENT1_OUTPUT" <<'PYEOF'
