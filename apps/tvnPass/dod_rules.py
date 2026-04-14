@@ -74,4 +74,4 @@ DOD_TESTS = [
     "DOD-06", "DOD-07", "DOD-08", "DOD-09", "DOD-10",
 ]
 
-# DOD actualizado 2026-04-14
+# DOD validado 2026-04-14 — trim fix en wdio.conf.js y generator_executor.py
