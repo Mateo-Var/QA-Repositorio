@@ -123,7 +123,28 @@ def execute_tests(input_json: dict) -> dict:
     app_id       = input_json["app_id"]
     exec_request = _resolve_request(input_json, "execute_request", "execute")
     dod_tests    = exec_request.get("dod_tests", [])
-    device       = exec_request.get("device", "R5CTB1W92KY")
+
+    # Prioridad: variable de entorno del runner > sugerencia de Agent 1.
+    # Agent 1 puede sugerir el serial USB (R5CTB1W92KY) pero en CI
+    # ANDROID_DEVICE_NAME siempre tiene la IP WiFi correcta.
+    device = os.environ.get("ANDROID_DEVICE_NAME") or exec_request.get("device", "R5CTB1W92KY")
+
+    # Guardia: si no hay .test.js, generar antes de ejecutar.
+    # Evita "No specs found" cuando Agent 1 elige execute pero los tests
+    # aún no existen en el repo (primer run después de borrar los tests).
+    spec_dir = e2e_dir(app_id)
+    if not spec_dir.exists() or not list(spec_dir.glob("*.test.js")):
+        print(f"[guardia] No hay .test.js en {spec_dir} — generando tests primero...")
+        gen_input = {
+            "app_id": app_id,
+            "generate_request": input_json.get("generate_request") or {
+                "flow": "dod_flows",
+                "scenarios": ["login_email", "reproductor_live", "logout", "busqueda"],
+            },
+            "context": input_json.get("context", {}),
+        }
+        gen_result = generate_tests(gen_input)
+        print(f"[guardia] Generados: {gen_result.get('generated_files', [])}")
 
     run_id      = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     reports_dir = ROOT / "reports" / app_id / "runs"
