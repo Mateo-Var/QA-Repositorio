@@ -14,6 +14,7 @@ Según el modo indicado por el Agente 1:
 - Appium 2.x + UiAutomator2
 - Device físico Samsung vía WiFi ADB
 - Helpers disponibles en `tests/helpers/`: `waitFor.js`, `pageContains.js`, `clickHelper.js`, `appState.js`, `screenshot.js`
+- `clickHelper.js` exporta `clickElement` (alias de `clickText`) — usar siempre `clickElement`
 
 ## Rutas de helpers — CRÍTICO
 Los tests se guardan en `apps/{app_id}/tests/e2e/`.

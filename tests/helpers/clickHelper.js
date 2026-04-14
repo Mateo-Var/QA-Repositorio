@@ -12,4 +12,7 @@ async function clickText(text) {
   await el.click();
 }
 
-module.exports = { clickText };
+// Alias para compatibilidad con tests generados por Agent 2
+const clickElement = clickText;
+
+module.exports = { clickText, clickElement };
