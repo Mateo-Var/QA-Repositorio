@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "1.5.0"
+VERSION = "1.6.0"
 
 CHANGELOG = [
     {
@@ -50,6 +50,12 @@ CHANGELOG = [
         "date": "2026-04-14",
         "author": "santi",
         "changes": "Trigger PR — validar generacion de tests con UI map real + fix encoding utf-8.",
+    },
+    {
+        "version": "1.6.0",
+        "date": "2026-04-14",
+        "author": "santi",
+        "changes": "Trigger PR — validar generacion de tests con UI map UTF-8 corregido.",
     },
 ]
 
