@@ -397,7 +397,7 @@ def run(app_id: str, package: str, activity: str, device_serial: str) -> None:
     }
 
     map_path = app_dir / "ui_map_android.json"
-    map_path.write_text(json.dumps(ui_map, indent=2, ensure_ascii=False))
+    map_path.write_text(json.dumps(ui_map, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\n✅ ui_map_android.json guardado en {map_path.relative_to(ROOT)}")
     print(f"\n👉 Siguiente paso: dile a Claude Code que analice apps/{app_id}/ui_map_android.json")
     print(f"{'═' * 60}\n")

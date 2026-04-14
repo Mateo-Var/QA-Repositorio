@@ -78,7 +78,7 @@ def generate_tests(input_json: dict) -> dict:
 
     # Cargar UI map — fuente de verdad para selectores reales
     ui_map_path = app_dir(app_id) / "ui_map_android.json"
-    ui_map = json.loads(ui_map_path.read_text(encoding="utf-8")) if ui_map_path.exists() else {}
+    ui_map = json.loads(ui_map_path.read_text(encoding="utf-8", errors="replace")) if ui_map_path.exists() else {}
 
     # Cargar app_context — fuente de verdad para prioridades de negocio
     app_ctx_path = app_dir(app_id) / "app_context.md"
