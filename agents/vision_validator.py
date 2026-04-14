@@ -42,7 +42,7 @@ MAX_FAILURES   = 5
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def load_prompt() -> str:
-    return PROMPT_PATH.read_text()
+    return PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def encode_image(path: Path) -> str:
@@ -186,6 +186,6 @@ if __name__ == "__main__":
         print("Uso: python agents/vision_validator.py <input.json>", file=sys.stderr)
         sys.exit(1)
 
-    input_data = json.loads(Path(sys.argv[1]).read_text())
+    input_data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     output     = run(input_data)
     print(json.dumps(output, indent=2))

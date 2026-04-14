@@ -88,7 +88,7 @@ def load_skills(app_id: str, diff: str = "") -> str:
     skipped = []
     for md in sorted(skills_dir.glob("*.md")):
         if relevant is None or md.stem in relevant:
-            parts.append(f"### {md.stem}\n{md.read_text()}")
+            parts.append(f"### {md.stem}\n{md.read_text(encoding='utf-8')}")
         else:
             skipped.append(md.stem)
 

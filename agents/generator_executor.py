@@ -44,7 +44,7 @@ def helpers_dir() -> Path:
 
 
 def load_prompt() -> str:
-    return PROMPT_PATH.read_text()
+    return PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def list_existing_tests(app_id: str) -> list[str]:
@@ -78,11 +78,11 @@ def generate_tests(input_json: dict) -> dict:
 
     # Cargar UI map — fuente de verdad para selectores reales
     ui_map_path = app_dir(app_id) / "ui_map_android.json"
-    ui_map = json.loads(ui_map_path.read_text()) if ui_map_path.exists() else {}
+    ui_map = json.loads(ui_map_path.read_text(encoding="utf-8")) if ui_map_path.exists() else {}
 
     # Cargar app_context — fuente de verdad para prioridades de negocio
     app_ctx_path = app_dir(app_id) / "app_context.md"
-    app_ctx_text = app_ctx_path.read_text() if app_ctx_path.exists() else ""
+    app_ctx_text = app_ctx_path.read_text(encoding="utf-8") if app_ctx_path.exists() else ""
 
     context = {
         "mode":              "generate",
@@ -237,6 +237,6 @@ if __name__ == "__main__":
         print("Uso: python agents/generator_executor.py <input.json>", file=sys.stderr)
         sys.exit(1)
 
-    input_json = json.loads(Path(input_path).read_text())
+    input_json = json.loads(Path(input_path).read_text(encoding="utf-8"))
     result = run(input_json)
     print(json.dumps(result, indent=2))
