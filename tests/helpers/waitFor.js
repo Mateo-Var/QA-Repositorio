@@ -1,6 +1,7 @@
 /**
  * waitFor — Espera con timeout propio y reintentos.
  * GOT-02: usa browser.pause (no setTimeout) para que Jest pueda mockearlo.
+ * PAT-01: helper extraído como módulo para permitir unit testing sin Appium.
  */
 
 async function waitFor(conditionFn, timeoutMs, intervalMs, errorMsg) {

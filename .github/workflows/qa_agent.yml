@@ -3,14 +3,17 @@ name: QA Agent — Android
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  schedule:
-    - cron: "0 3 * * *"   # Nightly a las 03:00 UTC
   workflow_dispatch:
     inputs:
       pr_number:
         description: "PR number (opcional, para comentar resultados)"
         required: false
         default: "0"
+
+# Permisos globales — permite publicar comentarios en PRs
+permissions:
+  pull-requests: write
+  contents: read
 
 # ── Job 0: Sugerencia Claude (ubuntu, sin dispositivo) ───────────────────────
 jobs:
@@ -67,28 +70,27 @@ jobs:
     needs: unit-tests
     runs-on: [self-hosted, android]   # Windows ahora / Mac Mini después — mismo label
     timeout-minutes: 60
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Install deps
-        run: |
-          pip install -r requirements.txt
-          npm install
+        run: npm install
 
       - name: Fase 2 — E2E Android
+        shell: powershell
         env:
+          PR_NUMBER:             ${{ github.event.pull_request.number || github.event.inputs.pr_number || '0' }}
+          BASE_SHA:              ${{ github.event.pull_request.base.sha || '' }}
+          HEAD_SHA:              ${{ github.event.pull_request.head.sha || '' }}
           ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'R5CTB1W92KY' }}
           ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
           ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
@@ -96,9 +98,17 @@ jobs:
           APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
+          APPIUM_HOME:           C:\Users\santi\.appium
         run: |
-          chmod +x scripts/run_android.sh
-          APP_ID="${APP_ID}" bash scripts/run_android.sh
+          $env:PATH = "C:\Program Files\GitHub CLI\;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
+          python -m pip install -r requirements.txt --quiet
+          if ($env:BASE_SHA -ne '') {
+            # PR — flujo completo: Agente 1 + Agente 2 + tests
+            bash scripts/run_on_pr.sh $env:PR_NUMBER $env:BASE_SHA $env:HEAD_SHA
+          } else {
+            # workflow_dispatch manual — solo tests
+            bash scripts/run_android.sh
+          }
 
       - name: Upload Android reports
         if: always()
@@ -114,7 +124,7 @@ jobs:
     needs: e2e-android
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
 
     steps:
       - uses: actions/checkout@v4

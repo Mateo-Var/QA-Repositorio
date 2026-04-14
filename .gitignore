@@ -166,6 +166,7 @@ reports/
 *.temp
 temp/
 tmp/
+.qa_tmp/
 
 # Appium/Selenium specific
 *.png

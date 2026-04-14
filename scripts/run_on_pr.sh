@@ -18,6 +18,9 @@ echo "=== QA Agent Android — PR #${PR_NUMBER} ==="
 echo "Base: ${BASE_SHA} → Head: ${HEAD_SHA}"
 echo "Run ID: ${RUN_ID}"
 
+# Ir a ROOT antes de cualquier operacion — rutas relativas compatibles Windows Python + Git Bash
+cd "$ROOT"
+
 # ── Pre-filtro: saltar si solo cambiaron archivos no relevantes ───────────────
 CHANGED_FILES=$(git diff --name-only "${BASE_SHA}..${HEAD_SHA}")
 echo "Archivos cambiados:"
@@ -59,13 +62,21 @@ fi
 
 echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA Android..."
 
+# ── Directorio temporal local (compatible Windows Python + Git Bash) ──────────
+# Usar rutas relativas desde ROOT evita el problema de /tmp/ en Windows Python
+TMP_DIR=".qa_tmp/${RUN_ID}"
+mkdir -p "$TMP_DIR"
+
+DIFF_FILE="${TMP_DIR}/qa_diff.txt"
+TRIGGER_FILE="${TMP_DIR}/qa_trigger.json"
+AGENT1_OUTPUT="${TMP_DIR}/qa_agent1_output.json"
+AGENT2_OUTPUT="${TMP_DIR}/qa_agent2_output.json"
+
 # ── 1. Generar diff del PR ────────────────────────────────────────────────────
-DIFF_FILE="/tmp/qa_diff_${RUN_ID}.txt"
 git diff "${BASE_SHA}..${HEAD_SHA}" > "$DIFF_FILE"
-echo "Diff generado: $(wc -l < "$DIFF_FILE") líneas"
+echo "Diff generado: $(wc -l < "$DIFF_FILE") lineas"
 
 # ── 2. Construir trigger JSON ─────────────────────────────────────────────────
-TRIGGER_FILE="/tmp/qa_trigger_${RUN_ID}.json"
 cat > "$TRIGGER_FILE" <<EOF
 {
   "type": "pull_request",
@@ -74,26 +85,24 @@ cat > "$TRIGGER_FILE" <<EOF
   "base_sha": "${BASE_SHA}",
   "head_sha": "${HEAD_SHA}",
   "run_id": "${RUN_ID}",
-  "changed_files": $(echo "$CHANGED_FILES" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip().splitlines()))")
+  "changed_files": $(echo "$CHANGED_FILES" | python -c "import sys,json; print(json.dumps(sys.stdin.read().strip().splitlines()))")
 }
 EOF
 
 # ── 3. Ejecutar Agente 1 (Analizador) ────────────────────────────────────────
 echo "--- Agente 1: Analizando cambios..."
-AGENT1_OUTPUT="/tmp/qa_agent1_output_${RUN_ID}.json"
-cd "$ROOT"
 APP_ID="${APP_ID:?APP_ID requerido}" python agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
 echo "Agente 1 completado."
 
 # ── 4. Ejecutar Agente 2 Android (Generador/Ejecutor) ────────────────────────
 echo "--- Agente 2: Ejecutando suite Android..."
-AGENT2_OUTPUT="/tmp/qa_agent2_output_${RUN_ID}.json"
 python agents/generator_executor.py "$AGENT1_OUTPUT" > "$AGENT2_OUTPUT"
 echo "Agente 2 completado."
 
-# ── 5. Comprimir contexto para la próxima sesión ─────────────────────────────
+# ── 5. Comprimir contexto para la proxima sesion ──────────────────────────────
 echo "--- Comprimiendo contexto..."
-APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT"
+APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT" \
+  || echo "compress_context fallo — continuando sin comprimir"
 
 # ── 6. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───
 echo "--- Publicando comentario en PR #${PR_NUMBER}..."
@@ -103,10 +112,10 @@ python scripts/post_pr_comment.py \
   --agent2 "$AGENT2_OUTPUT" \
   --run-id "${RUN_ID}" \
   --edit \
-  || echo "⚠️  post_pr_comment falló — continuando sin comentario"
+  || echo "post_pr_comment fallo — continuando sin comentario"
 
 # ── 7. Verificar DOD status ───────────────────────────────────────────────────
-DOD_STATUS=$(python3 -c "
+DOD_STATUS=$(python -c "
 import json
 data = json.load(open('$AGENT2_OUTPUT'))
 print(data.get('dod_status', 'unknown'))
@@ -120,6 +129,6 @@ if [ "$DOD_STATUS" = "failed" ]; then
 fi
 
 # ── Limpiar archivos temporales ───────────────────────────────────────────────
-rm -f "$DIFF_FILE" "$TRIGGER_FILE"
+rm -rf "$TMP_DIR"
 
 echo "=== Run Android completado exitosamente ==="

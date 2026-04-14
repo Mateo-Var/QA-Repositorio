@@ -11,6 +11,7 @@ Responsabilidad:
 
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -86,13 +87,22 @@ def generate_tests(input_json: dict) -> dict:
     }
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=8096,
         system=load_prompt(),
         messages=[{"role": "user", "content": json.dumps(context, indent=2)}],
     )
 
-    result = json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start != -1 and end != -1:
+        raw = raw[start : end + 1]
+    result = json.loads(raw)
 
     generated = []
     for file_spec in result.get("files", []):
@@ -119,7 +129,7 @@ def execute_tests(input_json: dict) -> dict:
     reports_dir = ROOT / "reports" / app_id / "runs"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    android_path = tests_root()
+    android_path = ROOT  # package.json está en root, no en tests/
     env = {
         **os.environ,
         "ANDROID_DEVICE_NAME":   device,
@@ -129,7 +139,8 @@ def execute_tests(input_json: dict) -> dict:
     }
 
     proc = subprocess.run(
-        ["npm", "run", "test:android"],
+        "npm run test:android",
+        shell=True,
         capture_output=True,
         text=True,
         cwd=android_path,

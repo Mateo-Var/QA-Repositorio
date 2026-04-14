@@ -85,7 +85,17 @@ def compress(agent2_output: dict) -> dict:
         system=COMPRESS_PROMPT,
         messages=[{"role": "user", "content": json.dumps(agent2_output, indent=2)}],
     )
-    return json.loads(response.content[0].text)
+    raw = response.content[0].text.strip()
+    if raw.startswith("```"):
+        import re
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start != -1 and end != -1:
+        raw = raw[start : end + 1]
+    return json.loads(raw)
 
 
 def update_session_log(app_id: str, compressed: dict) -> None:
@@ -156,7 +166,7 @@ def update_claude_md(app_id: str, compressed: dict) -> None:
     if not claude_md.exists():
         return
 
-    content = claude_md.read_text()
+    content = claude_md.read_text(encoding="utf-8")
     log_path = _session_log_path(app_id)
     if not log_path.exists():
         return
@@ -182,7 +192,7 @@ def update_claude_md(app_id: str, compressed: dict) -> None:
         start_idx = content.index(auto_start, content.index(marker)) + len(auto_start)
         end_idx = content.index(auto_end, content.index(marker))
         new_content = content[:start_idx] + json.dumps(new_context, indent=2) + content[end_idx:]
-        claude_md.write_text(new_content)
+        claude_md.write_text(new_content, encoding="utf-8")
 
 
 def main():

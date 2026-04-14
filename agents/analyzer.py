@@ -40,12 +40,12 @@ def load_compressed_session_log(app_id: str) -> str:
 
 def load_app_context(app_id: str) -> str:
     path = app_dir(app_id) / "app_context.md"
-    return path.read_text() if path.exists() else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 def load_dod_rules(app_id: str) -> str:
     path = app_dir(app_id) / "dod_rules.py"
-    return path.read_text() if path.exists() else ""
+    return path.read_text(encoding="utf-8") if path.exists() else ""
 
 
 # Mapeo de palabras clave en el diff → skills relevantes.
@@ -100,7 +100,7 @@ def load_skills(app_id: str, diff: str = "") -> str:
 
 
 def load_prompt() -> str:
-    with open(PROMPT_PATH) as f:
+    with open(PROMPT_PATH, encoding="utf-8") as f:
         return f.read()
 
 
@@ -142,13 +142,22 @@ def call_claude(trigger: dict, diff: str, app_id: str) -> dict:
     user_message = build_user_message(trigger, diff, app_id)
 
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=2048,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
     )
 
-    raw = response.content[0].text
+    raw = response.content[0].text.strip()
+    # Haiku a veces envuelve el JSON en ```json ... ``` — lo extraemos
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start != -1 and end != -1:
+        raw = raw[start : end + 1]
     return json.loads(raw)
 
 
@@ -181,8 +190,8 @@ if __name__ == "__main__":
     trigger_path = sys.argv[1] if len(sys.argv) > 1 else None
     diff_path = sys.argv[2] if len(sys.argv) > 2 else None
 
-    trigger = json.loads(Path(trigger_path).read_text()) if trigger_path else {"type": "manual"}
-    diff = Path(diff_path).read_text() if diff_path else ""
+    trigger = json.loads(Path(trigger_path).read_text(encoding="utf-8")) if trigger_path else {"type": "manual"}
+    diff = Path(diff_path).read_text(encoding="utf-8") if diff_path else ""
 
     result = run(trigger, diff, app_id)
     print(json.dumps(result, indent=2))

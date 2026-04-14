@@ -3,7 +3,7 @@
 > Patrones aprendidos, errores encontrados y decisiones tomadas.
 > Objetivo: reducir el tiempo de arranque en cada sesión nueva.
 > No reemplaza CLAUDE.md — ese es el contrato del sistema. Este es el diario técnico.
-> Última actualización: 2026-04-04
+> Última actualización: 2026-04-13
 
 ---
 
@@ -20,6 +20,24 @@
 **Problema:** El código asumía que `tests` era un dict keyed por nombre. En realidad `pytest-json-report` devuelve `tests` como lista de objetos.
 **Estado:** ✅ Corregido — usa `next()` con búsqueda por `nodeid`/`name` sobre la lista (línea 131).
 **Impacto resuelto:** El chequeo DOD encuentra los tests correctamente en la lista.
+
+### [BUG-03] Haiku envuelve el JSON en markdown code fences
+**Archivos:** `agents/analyzer.py` · `agents/generator_executor.py`
+**Problema:** Claude Haiku a veces responde con \`\`\`json...\`\`\` aunque el prompt diga "SOLO JSON". `json.loads()` falla con `JSONDecodeError: Expecting value`.
+**Estado:** ✅ Corregido — strip de markdown fences antes de `json.loads()` en ambos agentes.
+**Patrón aplicado:**
+```python
+raw = response.content[0].text.strip()
+if raw.startswith("```"):
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+return json.loads(raw)
+```
+
+### [BUG-04] `execute_tests()` corría `npm` desde `tests/` en lugar de root
+**Archivo:** `agents/generator_executor.py` · `execute_tests()`
+**Problema:** `cwd=tests_root()` apuntaba a `ROOT/tests/` pero `package.json` está en `ROOT`. `npm run test:android` fallaba con "missing script".
+**Estado:** ✅ Corregido — `cwd=ROOT`.
 
 ---
 
@@ -52,6 +70,42 @@
 **Implementado en:** `.github/workflows/qa_agent.yml` step "Run QA Agent (PR)".
 
 ### [DEC-06] El comentario PR no bloquea el pipeline si `gh` falla
+**Por qué:** Si el runner no tiene `gh` instalado o el token falla, no queremos que eso rompa los tests.
+**Implementado en:** `run_on_pr.sh` → `post_pr_comment.py ... || echo "⚠️  continúa"`.
+
+### [DEC-07] Windows self-hosted runner: bash no está en PATH cuando corre como servicio
+**Por qué:** `shell: bash` falla con `bash: command not found` porque el servicio de Windows no hereda el PATH del usuario. Git Bash existe pero no está registrado en el PATH del sistema.
+**Solución:** Usar `shell: pwsh` y agregar Git al PATH dinámicamente en el step:
+```powershell
+$env:PATH = "C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;" + $env:PATH
+bash scripts/run_on_pr.sh ...
+```
+**Regla:** Nunca usar `shell: bash` en jobs que corren en self-hosted Windows. Usar `shell: pwsh` + agregar Git al PATH.
+
+### [DEC-08] `permissions: pull-requests: write` requerido para `gh pr comment`
+**Por qué:** El `GITHUB_TOKEN` por defecto solo tiene permisos de lectura en PRs. `gh pr comment` usa la API GraphQL que requiere escritura. Sin este permiso el error es `Resource not accessible by integration`.
+**Solución:** Agregar al inicio del workflow (aplica a todos los jobs):
+```yaml
+permissions:
+  pull-requests: write
+  contents: read
+```
+
+### [DEC-09] `actions/setup-python` falla en Windows runner sin privilegios de admin
+**Por qué:** `setup-python` intenta crear un symlink `python3.exe` que requiere permisos de administrador en Windows (a menos que esté activo el Developer Mode).
+**Solución:** Quitar `setup-python` del job `e2e-android` y usar el Python del sistema que ya está instalado en la máquina. `pip` y `python` siguen disponibles desde el PATH del sistema.
+
+### [DEC-10] Agente 2 conectado a Fase 2 vía `run_on_pr.sh`
+**Por qué:** El workflow usaba `run_android.sh` (tests directos sin agentes). Agente 2 nunca se ejecutaba.
+**Solución:** En Fase 2, para PRs usar `run_on_pr.sh` que pasa por Agente 1 → Agente 2 → tests. Para `workflow_dispatch` manual, seguir con `run_android.sh`.
+**Lógica en el workflow:**
+```powershell
+if ($env:BASE_SHA -ne '') {
+  bash scripts/run_on_pr.sh $env:PR_NUMBER $env:BASE_SHA $env:HEAD_SHA
+} else {
+  bash scripts/run_android.sh
+}
+```
 **Por qué:** Si el runner no tiene `gh` instalado o el token falla, no queremos que eso rompa los tests.
 **Implementado en:** `run_on_pr.sh` → `post_pr_comment.py ... || echo "⚠️  continúa"`.
 
@@ -138,5 +192,5 @@ ANDROID_HOME=C:\Users\santi\AppData\Local\...\platform-tools
 JAVA_HOME=C:\Program Files\Microsoft\jdk-21.0.10.7-hotspot
 
 # GitHub Actions (automático)
-GH_TOKEN   # = ${{ github.token }} — para gh pr comment 
+GH_TOKEN   # = ${{ github.token }} — para gh pr comment
 ```
