@@ -3,7 +3,7 @@
 > Patrones aprendidos, errores encontrados y decisiones tomadas.
 > Objetivo: reducir el tiempo de arranque en cada sesión nueva.
 > No reemplaza CLAUDE.md — ese es el contrato del sistema. Este es el diario técnico.
-> Última actualización: 2026-04-13
+> Última actualización: 2026-04-14
 
 ---
 
@@ -109,6 +109,44 @@ if ($env:BASE_SHA -ne '') {
 **Por qué:** Si el runner no tiene `gh` instalado o el token falla, no queremos que eso rompa los tests.
 **Implementado en:** `run_on_pr.sh` → `post_pr_comment.py ... || echo "⚠️  continúa"`.
 
+### [DEC-11] Appium 3.x requerido para uiautomator2@7.x
+**Por qué:** `uiautomator2@7.x` no es compatible con Appium 2.x. Al instalar el driver con `appium driver install uiautomator2@2` en Appium 2 todo funciona, pero si el sistema resuelve `uiautomator2@7` (versión más reciente), lanza error de incompatibilidad.
+**Solución:** Subir `appium` en `package.json` a `^3.0.0`. El driver v7 requiere Appium 3.
+**Síntoma:** Error `driver uiautomator2 is not compatible with Appium 2.x`.
+
+### [DEC-12] Agente 3 (visión) debe correr en el runner self-hosted, no en ubuntu
+**Por qué:** Los screenshots los genera el job E2E en el runner self-hosted (donde está el dispositivo físico). Si Agente 3 corre en ubuntu-latest (job separado), necesita descargar los artifacts primero — y aún así no tiene el output JSON del Agente 2 para construir su input.
+**Solución:** Integrar Agent 3 dentro de `run_on_pr.sh` que ya corre en el self-hosted runner con los screenshots disponibles localmente.
+**Anti-patrón eliminado:** El job `vision-validate` separado en ubuntu que buscaba `/tmp/qa_agent2_output_*.json` — ruta que ya no existe.
+
+### [DEC-13] `ANDROID_DEVICE_NAME` debe ser IP:puerto para CI, no serial USB
+**Por qué:** El serial USB (`R5CTB1W92KY`) solo funciona cuando el cable físico está conectado. En CI el runner corre como servicio Windows y ADB no ve el serial automáticamente. WiFi ADB (`192.168.1.129:5555`) funciona siempre que el dispositivo esté en la misma red.
+**Solución:** Cambiar el secret `ANDROID_DEVICE_NAME` en GitHub a `192.168.1.129:5555`.
+**Prerequisito:** El dispositivo debe tener ADB TCP/IP activado (`adb tcpip 5555`) y estar en la misma red que el runner.
+
+### [DEC-14] Agente 1 elige `generate` aunque existan tests — forzar con REGLA ABSOLUTA
+**Por qué:** Si el diff toca muchos archivos del pipeline, Agente 1 puede concluir que "no hay tests para el flujo afectado" e ignorar los `.test.js` existentes.
+**Solución:** Añadir al prompt de Agente 1 una regla explícita: `mode` es SIEMPRE `execute` si existen archivos `.test.js` en `existing_tests`. Nunca `generate` si ya hay tests.
+**Archivo:** `prompts/agent1_analyzer.md` — sección "REGLA ABSOLUTA".
+
+### [DEC-15] `wdio-video-reporter` reemplazado por `adb screenrecord`
+**Por qué:** `wdio-video-reporter` graba por partes (un clip por test) y requiere ffmpeg. `adb screenrecord` graba la sesión completa como un solo video desde el dispositivo.
+**Implementado en:** `wdio.conf.js` — hook `before()` lanza `adb screenrecord` en background, hook `after()` lo detiene y hace `adb pull` del video.
+**Limitación:** Android limita `screenrecord` a 3 minutos por seguridad. Si la suite dura más, hay que encadenar varias grabaciones.
+
+### [BUG-05] Haiku agrega texto explicativo después del JSON ("Extra data")
+**Diferencia con BUG-03:** BUG-03 era markdown fences envolviendo el JSON. Este bug es JSON válido seguido de texto libre después del `}` final.
+**Síntoma:** `json.JSONDecodeError: Extra data: line N column M`.
+**Solución:** Extraer solo el objeto JSON antes de `json.loads()`:
+```python
+start = raw.find("{")
+end   = raw.rfind("}")
+if start != -1 and end != -1:
+    raw = raw[start:end + 1]
+result = json.loads(raw)
+```
+**Archivos:** `agents/analyzer.py` y `agents/generator_executor.py`.
+
 ---
 
 ## Patrones que funcionan
@@ -141,6 +179,22 @@ with patch("agents.analyzer.anthropic.Anthropic", return_value=mock_client):
 **Implementado en:** `post_pr_comment.py`.
 **Patrón a seguir:** Cualquier script nuevo que llame a APIs externas debe tener `--dry-run`.
 
+### [PAT-06] Construir input JSON de otro agente con Python inline en bash
+**Por qué:** Heredoc con variables que contienen rutas Windows (backslashes) rompe el JSON. Python maneja las rutas correctamente en cualquier OS.
+**Patrón:**
+```bash
+python - "$AGENT2_OUTPUT" "$AGENT3_INPUT" "$APP_ID" <<'PYEOF'
+import json, sys
+agent2_path, agent3_path, app_id = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(agent2_path, encoding="utf-8") as f:
+    d = json.load(f)
+out = {"run_id": d.get("run_id", ""), "app_id": app_id, ...}
+with open(agent3_path, "w", encoding="utf-8") as f:
+    json.dump(out, f, indent=2)
+PYEOF
+```
+**Aplica a:** Cualquier paso de `run_on_pr.sh` que construya JSON con valores leídos de otro JSON.
+
 ---
 
 ## Gotchas de testing
@@ -162,6 +216,16 @@ browser.execute.mockImplementation(async (cmd) => {
 });
 ```
 
+### [GOT-05] Después de rebase, hacer push de la rama con `--force-with-lease`
+**Por qué:** `git rebase` reescribe el historial local. Si la rama ya existía en remote, el push normal falla con "non-fast-forward". `--force-with-lease` es la versión segura: solo hace force-push si nadie más empujó cambios entretanto.
+**Comando:** `git push origin nombre-rama --force-with-lease`
+**Cuándo:** Siempre después de `git rebase main` en una rama que ya está en remote.
+
+### [GOT-06] Explorer Android: `driver.back()` puede ir a pantalla inesperada
+**Por qué:** En TVN Pass, el botón Back del sistema desde la pantalla de Radio navega a la pantalla de Búsqueda en vez de volver al Home. El BFS del Agente 0 quedaba atrapado.
+**Solución:** Después de `go_back()`, verificar si la firma de pantalla cambió al estado esperado. Si no, usar el primer tab del bottom bar para resetear a Home.
+**Implementado en:** `agents/explorer_android.py` → método `explore()`.
+
 ### [GOT-04] El `type: "commonjs"` en `package.json` afecta cómo Jest resuelve módulos
 **Por qué:** Con `type: "commonjs"`, Jest funciona sin Babel ni transformers adicionales. Si se cambia a `"module"` (ESM), Jest necesita configuración adicional (`transform`, `extensionsToTreatAsEsm`).
 **Regla:** Mantener `"type": "commonjs"` en el `package.json` de Android mientras se use Jest sin Babel.
@@ -172,7 +236,7 @@ browser.execute.mockImplementation(async (cmd) => {
 
 | Dispositivo | Serial ADB | Uso |
 |-------------|-----------|-----|
-| Samsung Android (físico) | `R5CTB1W92KY` | TVN Pass Android E2E |
+| Samsung Android (físico) | `R5CTB1W92KY` (USB) · `192.168.1.129:5555` (WiFi ADB — usar en CI) | TVN Pass Android E2E |
 
 ---
 
