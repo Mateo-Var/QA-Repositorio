@@ -101,6 +101,36 @@ echo "--- Agente 2: Ejecutando suite Android..."
 python agents/generator_executor.py "$AGENT1_OUTPUT" > "$AGENT2_OUTPUT"
 echo "Agente 2 completado."
 
+# ── 4b. Si Agent 2 generó tests, ejecutarlos en el mismo run ─────────────────
+# Cuando no hay tests previos, Agent 2 crea los archivos .test.js pero no los
+# ejecuta. Este bloque detecta eso y lanza la ejecución inmediatamente con los
+# tests recién generados — así el PR completo pasa por las 4 fases sin un
+# segundo PR.
+AGENT2_MODE=$(python -c "import json; d=json.load(open('$AGENT2_OUTPUT')); print(d.get('mode',''))")
+if [ "$AGENT2_MODE" = "generate" ]; then
+  echo "--- Modo generate detectado: ejecutando tests recién generados..."
+  AGENT2_EXECUTE_INPUT="${TMP_DIR}/qa_agent2_execute_input.json"
+  DEVICE="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
+
+  python - "$AGENT2_EXECUTE_INPUT" "${APP_ID}" "$DEVICE" <<'PYEOF'
+import json, sys
+out_path, app_id, device = sys.argv[1], sys.argv[2], sys.argv[3]
+execute_input = {
+    "mode": "execute",
+    "app_id": app_id,
+    "execute_request": {
+        "dod_tests": ["DOD-01", "DOD-03", "DOD-08"],
+        "device": device,
+    },
+}
+with open(out_path, "w", encoding="utf-8") as f:
+    json.dump(execute_input, f, indent=2)
+PYEOF
+
+  python agents/generator_executor.py "$AGENT2_EXECUTE_INPUT" > "$AGENT2_OUTPUT"
+  echo "--- Ejecución post-generación completada."
+fi
+
 # ── 5. Comprimir contexto para la proxima sesion ──────────────────────────────
 echo "--- Comprimiendo contexto..."
 APP_ID="${APP_ID}" python scripts/compress_context.py "$AGENT2_OUTPUT" \
