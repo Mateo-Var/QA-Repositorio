@@ -28,6 +28,7 @@ exports.config = {
   port:     parseInt(new URL(APPIUM_URL).port) || 4723,
 
   specs: [specsPath],
+  maxInstances: 1,
 
   capabilities: [{
     platformName:                    'Android',

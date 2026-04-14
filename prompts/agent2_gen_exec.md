@@ -50,6 +50,7 @@ Describe qué flujos son DOD-críticos y el propósito de la app.
 ### Regla de oro
 > Genera tests solo para lo que puedas ver en `ui_map.screens`.
 > Usa `app_context` para priorizar, no para inventar elementos.
+> Si el UI map no muestra pantalla de login → NO generes `test_login_email`, `test_logout` ni ningún test de autenticación.
 
 ## Modo: generate
 
@@ -110,6 +111,9 @@ before(async () => {
 });
 ```
 
+**NO incluir `afterEach` en los tests generados:**
+`wdio.conf.js` ya tiene un `afterEach` global que captura screenshots automáticamente en `happy_path/` y `failures/`. Si el test incluye su propio `afterEach` para screenshots, se duplica la captura y falla con errores de directorio. Solo usa `before` para setup.
+
 **Verificación de presencia — usar pageContains, no findElement:**
 ```javascript
 // Correcto (3-5x más rápido):
@@ -136,7 +140,7 @@ const password = process.env.TEST_USER_PASSWORD || 'test1234';
 ```
 
 ### Estructura de un test bien formado
-Ejemplo basado en una app que abre directo al reproductor (sin login), con navegación inferior Inicio/Explorar/Buscar/Menú:
+Sin `afterEach` — los screenshots los maneja `wdio.conf.js` automáticamente.
 
 ```javascript
 'use strict';
@@ -145,20 +149,11 @@ const { waitForElement }      = require('../../../../tests/helpers/waitFor');
 const { pageContains }        = require('../../../../tests/helpers/pageContains');
 const { clickElement }        = require('../../../../tests/helpers/clickHelper');
 const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
-const { takeScreenshot }      = require('../../../../tests/helpers/screenshot');
 
 describe('Reproductor Live — tvnPass Android', () => {
 
   before(async () => {
     await normalizarEstadoApp();
-  });
-
-  afterEach(async function () {
-    if (this.currentTest.state === 'failed') {
-      await takeScreenshot(`failures/${this.currentTest.title}`);
-    } else {
-      await takeScreenshot(`happy_path/${this.currentTest.title}`);
-    }
   });
 
   it('reproductor_live_carga_player_en_pantalla', async () => {
