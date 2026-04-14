@@ -85,6 +85,12 @@ jobs:
       - name: Install deps
         run: npm install
 
+      - name: Connect Android device via ADB
+        shell: bash
+        run: |
+          adb connect ${{ secrets.ANDROID_DEVICE_NAME || '192.168.1.129:5555' }}
+          adb devices
+
       - name: Fase 2 — E2E Android
         shell: powershell
         env:
