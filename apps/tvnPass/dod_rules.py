@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 CHANGELOG = [
     {
@@ -26,6 +26,12 @@ CHANGELOG = [
             "Agregado versioning y changelog. "
             "Sin cambio en valores de timeout — baseline establecido tras primer run 19/19."
         ),
+    },
+    {
+        "version": "1.2.0",
+        "date": "2026-04-14",
+        "author": "santi",
+        "changes": "DOD-03 ajustado a 10s para dispositivo físico. Trigger para demo pipeline completo Fases 0-3.",
     },
 ]
 
