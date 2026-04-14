@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 
 CHANGELOG = [
     {
@@ -33,13 +33,19 @@ CHANGELOG = [
         "author": "santi",
         "changes": "DOD-03 ajustado a 10s para dispositivo físico. Trigger para demo pipeline completo Fases 0-3.",
     },
+    {
+        "version": "1.3.0",
+        "date": "2026-04-14",
+        "author": "santi",
+        "changes": "DOD-03 corregido a 10s (valor correcto según changelog — estaba en 12s por error de demo).",
+    },
 ]
 
 # ── Timeouts por DOD ID (segundos) ────────────────────────────────────────────
 DOD_TIMEOUTS = {
     "DOD-01": 5,    # Login email → home screen
     "DOD-02": 6,    # Login SSO → home screen
-    "DOD-03": 12,   # Buffer inicial de video (físico necesita más margen que simulador)
+    "DOD-03": 10,   # Buffer inicial de video (físico necesita más margen que simulador)
     "DOD-04": 2,    # Resultados de búsqueda
     "DOD-05": 3,    # Selector de perfiles cargado
     "DOD-06": 60,   # Onboarding completo
