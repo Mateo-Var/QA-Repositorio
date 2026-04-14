@@ -115,6 +115,19 @@ def analyze(input_json: dict) -> dict:
     images     = select_screenshots(screenshots_dir)
     has_images = bool(images["happy_path"] or images["failures"])
 
+    # Sin screenshots (tests fallaron antes de arrancar o dispositivo no respondió)
+    # → devolver veredicto failed sin llamar a Claude para evitar respuesta vacía
+    if not has_images and dod_status != "passed":
+        return {
+            "vision_verdict": "failed",
+            "block_merge":    False,
+            "diagnosis":      "No se encontraron screenshots. Los tests fallaron antes de capturar imágenes — posiblemente el dispositivo no estaba disponible.",
+            "findings":       [],
+            "recommendations": ["Verificar que el dispositivo esté desbloqueado y conectado antes del run."],
+            "selected_images": {"happy_path": [], "failures": []},
+            "video_path":     None,
+        }
+
     context = {
         "app_id":      app_id,
         "run_id":      run_id,
@@ -139,7 +152,11 @@ def analyze(input_json: dict) -> dict:
         messages=[{"role": "user", "content": message_content}],
     )
 
-    result = json.loads(response.content[0].text)
+    raw = (response.content[0].text or "").strip()
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end == -1:
+        raise ValueError(f"Agent 3 no devolvió JSON válido: {raw[:200]!r}")
+    result = json.loads(raw[start:end + 1])
 
     # Añadir metadata de artefactos para que post_pr_comment.py los referencia
     result["selected_images"] = {
