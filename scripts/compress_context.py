@@ -105,7 +105,7 @@ def update_session_log(app_id: str, compressed: dict) -> None:
     _backup_session_log(app_id)
 
     if path.exists():
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             log = json.load(f)
     else:
         log = {"sessions": [], "summary": None, "version": 0}
@@ -127,7 +127,7 @@ def update_session_log(app_id: str, compressed: dict) -> None:
     if len(log["sessions"]) > 20:
         log["sessions"] = log["sessions"][-20:]
 
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(log, f, indent=2)
 
 
@@ -135,7 +135,7 @@ def update_failed_tests(app_id: str, compressed: dict) -> None:
     path = _failed_tests_path(app_id)
 
     if path.exists():
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             history = json.load(f)
     else:
         history = {"failures": [], "last_updated": None}
@@ -156,7 +156,7 @@ def update_failed_tests(app_id: str, compressed: dict) -> None:
 
     history["last_updated"] = timestamp
 
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(history, f, indent=2)
 
 
@@ -171,7 +171,7 @@ def update_claude_md(app_id: str, compressed: dict) -> None:
     if not log_path.exists():
         return
 
-    with open(log_path) as f:
+    with open(log_path, encoding="utf-8") as f:
         log = json.load(f)
 
     new_context = {

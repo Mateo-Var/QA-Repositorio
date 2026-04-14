@@ -118,7 +118,7 @@ def generate_tests(input_json: dict) -> dict:
     for file_spec in result.get("files", []):
         path = tests_dir / file_spec["filename"]
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(file_spec["content"])
+        path.write_text(file_spec["content"], encoding="utf-8")
         generated.append(str(path.relative_to(ROOT)))
 
     return {
@@ -191,7 +191,7 @@ def execute_tests(input_json: dict) -> dict:
         "dod_failures": dod_failures,
         "stdout":      proc.stdout[-3000:],  # últimas 3000 chars para no inflar
         "stderr":      proc.stderr[-1000:],
-    }, indent=2))
+    }, indent=2), encoding="utf-8")
 
     # Rutas de artefactos para Agent 3 y post_pr_comment
     screenshots_dir = ROOT / "reports" / app_id / "screenshots" / run_id
