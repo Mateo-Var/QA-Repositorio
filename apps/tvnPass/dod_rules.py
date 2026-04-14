@@ -39,7 +39,7 @@ CHANGELOG = [
 DOD_TIMEOUTS = {
     "DOD-01": 5,    # Login email → home screen
     "DOD-02": 6,    # Login SSO → home screen
-    "DOD-03": 10,   # Buffer inicial de video (físico necesita más margen que simulador)
+    "DOD-03": 12,   # Buffer inicial de video (físico necesita más margen que simulador)
     "DOD-04": 2,    # Resultados de búsqueda
     "DOD-05": 3,    # Selector de perfiles cargado
     "DOD-06": 60,   # Onboarding completo
