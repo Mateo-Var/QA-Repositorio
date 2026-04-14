@@ -72,14 +72,16 @@ O si decides generar nuevos tests:
 
 ## Reglas de decisión
 
+**REGLA ABSOLUTA: `mode` es SIEMPRE `execute` si existen archivos `.test.js` en `existing_tests`. Los DOD se ejecutan en CADA run sin excepción. Nunca elijas `generate` si ya hay tests.**
+
 1. **Si el diff toca archivos de autenticación** → incluir DOD-01 y DOD-02 en `dod_tests`.
 2. **Si el diff toca el reproductor o live** → incluir DOD-03 en `dod_tests`.
 3. **Si el diff toca búsqueda** → incluir DOD-04 en `dod_tests`.
 4. **Si el diff toca onboarding** → incluir DOD-06 en `dod_tests`.
 5. **Si el diff toca pagos o suscripción** → incluir DOD-07 en `dod_tests`.
-6. **Si no existen tests `.test.js` para un flujo afectado** → `mode: generate`.
-7. **Si existen tests pero el cambio es grande (>100 líneas en un flujo)** → generar tests adicionales.
-8. **Los DOD siempre se ejecutan independientemente del diff.**
+6. **Si no existen tests `.test.js`** → `mode: generate`.
+7. **Si existen tests y el cambio agrega un flujo nuevo** → `mode: execute` igualmente, e incluir `generate_request` con los nuevos scenarios dentro del mismo JSON.
+8. **`dod_tests` siempre incluye como mínimo: DOD-01, DOD-03, DOD-08.**
 
 ## Conocimiento Android — selectores nativos
 
