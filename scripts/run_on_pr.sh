@@ -96,6 +96,36 @@ echo "--- Agente 1: Analizando cambios..."
 APP_ID="${APP_ID:?APP_ID requerido}" python agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
 echo "Agente 1 completado."
 
+# ── 4a. Verificar/iniciar Appium (DEC-04) ────────────────────────────────────
+# wdio.conf.js conecta a Appium externo — no arranca el suyo propio.
+# Si ya corre en APPIUM_SERVER_URL se reutiliza; si no, lo inicia.
+APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
+APPIUM_PORT="${APPIUM_URL##*:}"
+APPIUM_PORT="${APPIUM_PORT%%/*}"
+echo "🔌 Verificando Appium en $APPIUM_URL..."
+if curl -sf "$APPIUM_URL/status" > /dev/null 2>&1; then
+  echo "   ✓ Appium ya está corriendo en el puerto $APPIUM_PORT"
+else
+  echo "   Appium no responde — iniciando en puerto $APPIUM_PORT..."
+  mkdir -p "reports/${APP_ID:-tvnPass}/logs"
+  appium --port "$APPIUM_PORT" --relaxed-security \
+    --log "reports/${APP_ID:-tvnPass}/logs/appium.log" &
+  echo "   PID: $! — esperando que esté listo..."
+  READY=0
+  for i in $(seq 1 30); do
+    sleep 1
+    if curl -sf "$APPIUM_URL/status" > /dev/null 2>&1; then
+      echo "   ✓ Appium listo (${i}s)"
+      READY=1
+      break
+    fi
+  done
+  if [[ $READY -eq 0 ]]; then
+    echo "ERROR: Appium no inició después de 30s"
+    exit 1
+  fi
+fi
+
 # ── 4. Ejecutar Agente 2 Android (Generador/Ejecutor) ────────────────────────
 # Nota: la guardia "no hay .test.js" vive en execute_tests() de
 # generator_executor.py — más fiable que manipular el JSON desde bash.

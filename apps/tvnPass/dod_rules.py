@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.1.1"
+VERSION = "2.2.0"
 
 CHANGELOG = [
     {
@@ -98,6 +98,17 @@ CHANGELOG = [
         "date": "2026-04-15",
         "author": "santi",
         "changes": "Trigger PR — validar fix GOT-04 en device físico (tests sin cuelgue).",
+    },
+    {
+        "version": "2.2.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "Fix DEC-04: quitar @wdio/appium-service — wdio conecta a Appium externo. "
+            "Causa raíz PR16: wdio arrancaba su propio Appium en puerto aleatorio (65244) "
+            "en conflicto con el Appium manual en 4723 → UND_ERR_HEADERS_TIMEOUT. "
+            "Agregar check inicio Appium en run_on_pr.sh + run_android.sh."
+        ),
     },
 ]
 

@@ -51,18 +51,12 @@ exports.config = {
   logLevel:               'warn',
   bail:                   0,
   waitforTimeout:         10000,
-  connectionRetryTimeout: 30000,   // GOT-04: 120s causaba cuelgues largos en streaming
+  connectionRetryTimeout: 60000,   // 60s para session creation (UiAutomator2 warmup)
   connectionRetryCount:   3,
 
-  services: [
-    ['appium', {
-      command: 'appium',
-      args: {
-        relaxedSecurity: true,
-        log: path.resolve(__dirname, '../reports', APP_ID, 'logs/appium.log'),
-      },
-    }],
-  ],
+  // Sin @wdio/appium-service — conectamos al Appium externo en APPIUM_SERVER_URL.
+  // Arrancar Appium es responsabilidad de run_android.sh (DEC-04).
+  services: [],
 
   framework: 'mocha',
   mochaOpts: {
