@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.2.1"
+VERSION = "2.3.0"
 
 CHANGELOG = [
     {
@@ -116,6 +116,16 @@ CHANGELOG = [
         "author": "santi",
         "changes": "Trigger PR — validar fix DEC-04 (Appium externo, sin conflicto de puertos).",
     },
+    {
+        "version": "2.3.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "DOD_TESTS reducido a solo DOD-03 — único con test implementado. "
+            "Los demás DODs (login, logout, búsqueda, etc.) quedan como especificación "
+            "en DOD_TIMEOUTS hasta tener acceso a esos flujos en el device."
+        ),
+    },
 ]
 
 # ── Timeouts por DOD ID (segundos) ────────────────────────────────────────────
@@ -146,9 +156,11 @@ DOD_TIMEOUTS_BY_FLOW = {
     "accessibility":    DOD_TIMEOUTS["DOD-10"],
 }
 
+# Solo los DODs con tests implementados en apps/tvnPass/tests/e2e/
+# Los demás existen como especificación en DOD_TIMEOUTS pero no se ejecutan
+# hasta tener acceso a login/logout/búsqueda en el device.
 DOD_TESTS = [
-    "DOD-01", "DOD-02", "DOD-03", "DOD-04", "DOD-05",
-    "DOD-06", "DOD-07", "DOD-08", "DOD-09", "DOD-10",
+    "DOD-03",  # test_reproductor_live.test.js — player live, controles, EPG
 ]
 
 # DOD validado 2026-04-14 — trim fix en wdio.conf.js y generator_executor.py
