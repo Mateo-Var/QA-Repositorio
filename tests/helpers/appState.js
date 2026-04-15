@@ -51,13 +51,23 @@ async function normalizarEstadoApp() {
     }
   } catch (_) {}
 
-  // App puede estar en fullscreen player — HOME del sistema y reabrir
+  // App puede estar en fullscreen player o con teclado abierto — HOME descarta el teclado
   console.log('[estado] Inicio no visible — usando tecla HOME del sistema...');
   try {
     await browser.execute('mobile: pressKey', { keycode: 3 });
     await browser.pause(1500);
     await browser.execute('mobile: activateApp', { appId: APP_ID });
     await browser.pause(2000);
+  } catch (_) {}
+
+  // Después de HOME+activate el teclado ya está cerrado — intentar Inicio de nuevo
+  try {
+    const inicio = await $('android=new UiSelector().text("Inicio")');
+    if (await inicio.isExisting()) {
+      await inicio.click();
+      await browser.pause(1500);
+      console.log('[estado] ✓ tap en Inicio post-HOME ejecutado');
+    }
   } catch (_) {}
 
   if (await _enHomeScreen()) {

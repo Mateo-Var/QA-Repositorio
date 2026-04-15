@@ -44,6 +44,8 @@ describe('Navegación Inferior — tvnPass Android', () => {
   });
 
   it('navegacion_click_boton_menu', async () => {
+    // Reset: el test anterior dejó la pantalla de búsqueda con teclado abierto
+    await normalizarEstadoApp();
     // Al clickear Menú, debe abrir el menú lateral/modal
     await clickElement('~Menú');
     // El menú debe abrirse, verificamos que el click fue procesado
