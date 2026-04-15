@@ -1,14 +1,20 @@
 /**
- * clickHelper — Click por texto con validación previa en page source.
- * Verifica presencia antes de intentar el click para errores claros.
+ * clickHelper — Click con validación previa de existencia.
+ * GOT-04: getPageSource() reemplazado por isExisting() — no serializa el árbol completo.
+ * Soporta prefijo ~ para accessibility ID (content-desc) usado por tests generados.
  */
 
 async function clickText(text) {
-  const src = await browser.getPageSource();
-  if (!src.includes(`>${text}<`) && !src.includes(`"${text}"`)) {
+  let el;
+  if (text.startsWith('~')) {
+    // Accessibility ID selector — mapea a content-desc en Android
+    el = await $(`~${text.slice(1)}`);
+  } else {
+    el = await $(`android=new UiSelector().text("${text}")`);
+  }
+  if (!(await el.isExisting())) {
     throw new Error(`"${text}" no encontrado en la UI`);
   }
-  const el = await $(`android=new UiSelector().text("${text}")`);
   await el.click();
 }
 

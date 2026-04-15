@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.0.1"
+VERSION = "2.1.0"
 
 CHANGELOG = [
     {
@@ -80,6 +80,18 @@ CHANGELOG = [
         "date": "2026-04-15",
         "author": "santi",
         "changes": "Opcion B — tests commiteados al repo, pipeline ejecuta directo sin generar.",
+    },
+    {
+        "version": "2.1.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "Fix crítico: reemplazar getPageSource() por UiSelector.isExisting() en "
+            "pageContains, clickHelper y appState. "
+            "getPageSource() cuelga 60-120s en apps Compose con video live (GOT-04). "
+            "Agregar soporte prefijo ~ en clickHelper. "
+            "connectionRetryTimeout 120s→30s."
+        ),
     },
 ]
 

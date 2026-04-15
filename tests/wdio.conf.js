@@ -51,7 +51,7 @@ exports.config = {
   logLevel:               'warn',
   bail:                   0,
   waitforTimeout:         10000,
-  connectionRetryTimeout: 120000,
+  connectionRetryTimeout: 30000,   // GOT-04: 120s causaba cuelgues largos en streaming
   connectionRetryCount:   3,
 
   services: [

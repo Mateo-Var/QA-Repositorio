@@ -3,9 +3,19 @@
  * PAT-03: punto de entrada universal para dejar la app en home screen.
  * DEC-03: usar activateApp, nunca startActivity (bloqueado en Android 16).
  * GOT-03: browser.execute necesita mockImplementation por cmd en tests.
+ * GOT-04: getPageSource() reemplazado por UiSelector.isExisting() — no cuelga en streaming.
  */
 
 const APP_ID = process.env.ANDROID_APP_PACKAGE || 'com.streann.tvnpass';
+
+async function _enHomeScreen() {
+  try {
+    const el = await $('android=new UiSelector().text("Programación")');
+    return await el.isExisting();
+  } catch (_) {
+    return false;
+  }
+}
 
 async function normalizarEstadoApp() {
   // queryAppState: 0=no instalada, 1=no corriendo, 2=background/PiP, 3=suspendida, 4=foreground
@@ -25,10 +35,7 @@ async function normalizarEstadoApp() {
     await browser.pause(3000);
   }
 
-  let src = '';
-  try { src = await browser.getPageSource(); } catch (_) {}
-
-  if (src.includes('Programación')) {
+  if (await _enHomeScreen()) {
     console.log('[estado] ✓ ya en home screen');
     return;
   }
@@ -53,9 +60,7 @@ async function normalizarEstadoApp() {
     await browser.pause(2000);
   } catch (_) {}
 
-  src = '';
-  try { src = await browser.getPageSource(); } catch (_) {}
-  if (src.includes('Programación')) {
+  if (await _enHomeScreen()) {
     console.log('[estado] ✓ home screen confirmada');
   } else {
     console.log('[estado] ADVERTENCIA: no se pudo confirmar home screen — continuando de todos modos');
