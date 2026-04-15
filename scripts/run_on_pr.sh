@@ -110,8 +110,10 @@ _appium_up() {
 import socket, sys
 try:
     s = socket.create_connection(('127.0.0.1', $APPIUM_PORT), timeout=5)
-    s.close(); sys.exit(0)
-except: sys.exit(1)
+    s.close()
+except Exception:
+    sys.exit(1)
+sys.exit(0)
 " 2>/dev/null
 }
 
