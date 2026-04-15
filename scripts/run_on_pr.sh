@@ -102,11 +102,21 @@ echo "Agente 1 completado."
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
-# Siempre checkeamos localhost — Appium corre local en el runner aunque
-# APPIUM_SERVER_URL apunte a otra IP (secret maskeado como ***).
-LOCAL_CHECK="http://127.0.0.1:${APPIUM_PORT}/status"
+
+# Python TCP check — más fiable que curl en git-bash Windows
+# (curl puede fallar por resolución IPv6 de localhost u otros quirks de Windows)
+_appium_up() {
+  python -c "
+import socket, sys
+try:
+    s = socket.create_connection(('127.0.0.1', $APPIUM_PORT), timeout=5)
+    s.close(); sys.exit(0)
+except: sys.exit(1)
+" 2>/dev/null
+}
+
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
-if curl -sf --max-time 5 "$LOCAL_CHECK" > /dev/null 2>&1; then
+if _appium_up; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
   # Liberar puerto si hay proceso ocupándolo (zombie o instancia anterior)
@@ -121,12 +131,12 @@ else
   echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "reports/${APP_ID:-tvnPass}/logs"
   appium --port "${APPIUM_PORT}" --relaxed-security \
-    --log "reports/${APP_ID:-tvnPass}/logs/appium.log" &
+    --log "reports/${APP_ID:-tvnPass}/logs/appium.log" > /dev/null 2>&1 &
   echo "   PID: $! — esperando que esté listo..."
   READY=0
   for i in $(seq 1 30); do
     sleep 1
-    if curl -sf "$LOCAL_CHECK" > /dev/null 2>&1; then
+    if _appium_up; then
       echo "   ✓ Appium listo (${i}s)"
       READY=1
       break

@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.4.1"
+VERSION = "2.4.2"
 
 CHANGELOG = [
     {
@@ -179,6 +179,16 @@ CHANGELOG = [
         "date": "2026-04-15",
         "author": "santi",
         "changes": "Trigger PR — validar fix 127.0.0.1 + ADB USB.",
+    },
+    {
+        "version": "2.4.2",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "Fix check Appium: reemplazar curl por Python TCP socket — "
+            "curl falla en git-bash Windows por quirks de IPv6/localhost. "
+            "Python socket.create_connection es cross-platform y fiable."
+        ),
     },
 ]
 

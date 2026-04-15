@@ -33,10 +33,19 @@ echo "════════════════════════�
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
-LOCAL_CHECK="http://127.0.0.1:${APPIUM_PORT}/status"
+
+_appium_up() {
+  python -c "
+import socket, sys
+try:
+    s = socket.create_connection(('127.0.0.1', $APPIUM_PORT), timeout=5)
+    s.close(); sys.exit(0)
+except: sys.exit(1)
+" 2>/dev/null
+}
 
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
-if curl -sf --max-time 5 "$LOCAL_CHECK" > /dev/null 2>&1; then
+if _appium_up; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
   echo "   Appium no responde — liberando puerto ${APPIUM_PORT} si está ocupado..."
@@ -50,13 +59,13 @@ else
   echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "$ROOT/reports/$APP_ID/logs"
   appium --port "${APPIUM_PORT}" --relaxed-security \
-    --log "$ROOT/reports/$APP_ID/logs/appium.log" &
+    --log "$ROOT/reports/$APP_ID/logs/appium.log" > /dev/null 2>&1 &
   APPIUM_PID=$!
   echo "   PID: $APPIUM_PID — esperando que esté listo..."
   READY=0
   for i in $(seq 1 30); do
     sleep 1
-    if curl -sf "$LOCAL_CHECK" > /dev/null 2>&1; then
+    if _appium_up; then
       echo "   ✓ Appium listo (${i}s)"
       READY=1
       break
