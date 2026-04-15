@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.4.2"
+VERSION = "2.9.0"
 
 CHANGELOG = [
     {
@@ -189,6 +189,36 @@ CHANGELOG = [
             "curl falla en git-bash Windows por quirks de IPv6/localhost. "
             "Python socket.create_connection es cross-platform y fiable."
         ),
+    },
+    {
+        "version": "2.5.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Fix: except Exception en _appium_up — bare except capturaba SystemExit(0).",
+    },
+    {
+        "version": "2.6.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Fix: exportar ANDROID_HOME/JAVA_HOME antes de iniciar Appium.",
+    },
+    {
+        "version": "2.7.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Fix: connectionRetryTimeout 60s→120s — UiAutomator2 tarda ~74s en arrancar.",
+    },
+    {
+        "version": "2.8.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Fix: afterEach→afterTest en wdio.conf.js — afterEach ignorado en wdio v9.",
+    },
+    {
+        "version": "2.9.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Fix tests E2E: normalizar estado post-HOME en appState + reset antes de click menú.",
     },
 ]
 
