@@ -69,9 +69,10 @@ exports.config = {
   // ── Screenshot automático por test ────────────────────────────────────────
   // afterEach guarda screenshot en happy_path/ si pasó, failures/ si falló.
   // Los paths usan el mismo RUN_ID que el video para agrupar los artefactos.
-  async afterEach(test, _ctx, result) {
+  // afterTest es el hook correcto en wdio v9 (afterEach se ignora silenciosamente)
+  async afterTest(test, _ctx, { passed }) {
     const { takeScreenshot } = require('./helpers/screenshot');
-    const type = result.passed ? 'happy_path' : 'failures';
+    const type = passed ? 'happy_path' : 'failures';
     const raw  = (test.fullTitle || test.title || 'test')
       .replace(/[^a-z0-9]/gi, '_')
       .toLowerCase()
