@@ -104,7 +104,7 @@ APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
 # Siempre checkeamos localhost — Appium corre local en el runner aunque
 # APPIUM_SERVER_URL apunte a otra IP (secret maskeado como ***).
-LOCAL_CHECK="http://localhost:${APPIUM_PORT}/status"
+LOCAL_CHECK="http://127.0.0.1:${APPIUM_PORT}/status"
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
 if curl -sf --max-time 5 "$LOCAL_CHECK" > /dev/null 2>&1; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"

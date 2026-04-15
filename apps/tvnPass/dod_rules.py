@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.3.5"
+VERSION = "2.4.0"
 
 CHANGELOG = [
     {
@@ -162,6 +162,17 @@ CHANGELOG = [
         "date": "2026-04-15",
         "author": "santi",
         "changes": "Trigger PR — sin Appium manual, CI gestiona Appium autónomamente.",
+    },
+    {
+        "version": "2.4.0",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "Fix curl check: 127.0.0.1 en vez de localhost "
+            "(Windows resuelve localhost a ::1 IPv6, Appium escucha en IPv4). "
+            "ADB: cambiar a USB serial R5CTB1W92KY como default — "
+            "WiFi se desactiva sola en Samsung."
+        ),
     },
 ]
 

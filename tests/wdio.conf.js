@@ -13,9 +13,9 @@ process.env.PATH         = `${ADB_PATH};${JAVA_HOME}\\bin;${process.env.PATH}`;
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
 // APP_ID determina qué specs se cargan — un solo runner, múltiples apps
 const APP_ID       = (process.env.APP_ID             || 'tvnPass').trim();
-// WiFi ADB: ANDROID_DEVICE_NAME debe ser IP:puerto → ej. 192.168.1.50:5555
-// USB ADB:  puede ser el serial → ej. R5CTB1W92KY
-const DEVICE       = (process.env.ANDROID_DEVICE_NAME || '192.168.1.50:5555').trim();
+// USB ADB:  serial del dispositivo → R5CTB1W92KY (preferido, más estable)
+// WiFi ADB: IP:puerto → ej. 192.168.1.209:5555 (requiere depuración inalámbrica activa)
+const DEVICE       = (process.env.ANDROID_DEVICE_NAME || 'R5CTB1W92KY').trim();
 const APP_PACKAGE  = (process.env.ANDROID_APP_PACKAGE  || 'com.streann.tvnpass').trim();
 const APP_ACTIVITY = (process.env.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity').trim();
 const APPIUM_URL   = (process.env.APPIUM_SERVER_URL    || 'http://localhost:4723').trim();

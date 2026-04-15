@@ -33,7 +33,7 @@ echo "════════════════════════�
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
-LOCAL_CHECK="http://localhost:${APPIUM_PORT}/status"
+LOCAL_CHECK="http://127.0.0.1:${APPIUM_PORT}/status"
 
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
 if curl -sf --max-time 5 "$LOCAL_CHECK" > /dev/null 2>&1; then
