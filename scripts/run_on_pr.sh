@@ -99,6 +99,13 @@ echo "Agente 1 completado."
 # ── 4a. Verificar/iniciar Appium (DEC-04) ────────────────────────────────────
 # wdio.conf.js conecta a Appium externo — no arranca el suyo propio.
 # Si ya corre en APPIUM_SERVER_URL se reutiliza; si no, lo inicia.
+
+# Exportar ANDROID_HOME y JAVA_HOME para que Appium (proceso background) los herede.
+# wdio.conf.js tiene fallbacks para el proceso Node, pero Appium los necesita también.
+export ANDROID_HOME="${ANDROID_HOME:-C:/Users/santi/AppData/Local/Microsoft/WinGet/Packages/Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe/platform-tools}"
+export JAVA_HOME="${JAVA_HOME:-C:/Program Files/Microsoft/jdk-21.0.10.7-hotspot}"
+export PATH="${ANDROID_HOME}:${JAVA_HOME}/bin:${PATH}"
+
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"

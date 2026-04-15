@@ -30,6 +30,12 @@ echo "════════════════════════�
 # ── Verificar/iniciar Appium (DEC-04) ─────────────────────────────────────────
 # wdio.conf.js usa Appium externo — no arranca el suyo propio.
 # Si Appium ya corre (usuario manual o CI previo) se reutiliza; si no, lo inicia.
+
+# Exportar ANDROID_HOME y JAVA_HOME para que Appium (proceso background) los herede.
+export ANDROID_HOME="${ANDROID_HOME:-C:/Users/santi/AppData/Local/Microsoft/WinGet/Packages/Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe/platform-tools}"
+export JAVA_HOME="${JAVA_HOME:-C:/Program Files/Microsoft/jdk-21.0.10.7-hotspot}"
+export PATH="${ANDROID_HOME}:${JAVA_HOME}/bin:${PATH}"
+
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
