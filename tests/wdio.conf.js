@@ -51,7 +51,7 @@ exports.config = {
   logLevel:               'warn',
   bail:                   0,
   waitforTimeout:         10000,
-  connectionRetryTimeout: 60000,   // 60s para session creation (UiAutomator2 warmup)
+  connectionRetryTimeout: 120000,  // 120s para session creation (UiAutomator2 tarda ~74s en arrancar)
   connectionRetryCount:   3,
 
   // Sin @wdio/appium-service — conectamos al Appium externo en APPIUM_SERVER_URL.
