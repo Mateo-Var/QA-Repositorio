@@ -102,26 +102,36 @@ echo "Agente 1 completado."
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
-echo "🔌 Verificando Appium en $APPIUM_URL..."
-if curl -sf "$APPIUM_URL/status" > /dev/null 2>&1; then
-  echo "   ✓ Appium ya está corriendo en el puerto $APPIUM_PORT"
+# Siempre checkeamos localhost — Appium corre local en el runner aunque
+# APPIUM_SERVER_URL apunte a otra IP (secret maskeado como ***).
+LOCAL_CHECK="http://localhost:${APPIUM_PORT}/status"
+echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
+if curl -sf "$LOCAL_CHECK" > /dev/null 2>&1; then
+  echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
-  echo "   Appium no responde — iniciando en puerto $APPIUM_PORT..."
+  # Liberar puerto si hay proceso zombie que lo ocupa sin responder HTTP
+  echo "   Appium no responde — liberando puerto ${APPIUM_PORT} si está ocupado..."
+  powershell -Command "
+    Get-NetTCPConnection -LocalPort ${APPIUM_PORT} -ErrorAction SilentlyContinue |
+    ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }
+  " 2>/dev/null || true
+  sleep 2
+  echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "reports/${APP_ID:-tvnPass}/logs"
-  appium --port "$APPIUM_PORT" --relaxed-security \
+  appium --port "${APPIUM_PORT}" --relaxed-security \
     --log "reports/${APP_ID:-tvnPass}/logs/appium.log" &
   echo "   PID: $! — esperando que esté listo..."
   READY=0
   for i in $(seq 1 30); do
     sleep 1
-    if curl -sf "$APPIUM_URL/status" > /dev/null 2>&1; then
+    if curl -sf "$LOCAL_CHECK" > /dev/null 2>&1; then
       echo "   ✓ Appium listo (${i}s)"
       READY=1
       break
     fi
   done
   if [[ $READY -eq 0 ]]; then
-    echo "ERROR: Appium no inició después de 30s"
+    echo "ERROR: Appium no inició después de 30s — revisa reports/${APP_ID:-tvnPass}/logs/appium.log"
     exit 1
   fi
 fi
