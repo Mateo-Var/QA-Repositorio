@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.2.0"
+VERSION = "2.2.1"
 
 CHANGELOG = [
     {
@@ -109,6 +109,12 @@ CHANGELOG = [
             "en conflicto con el Appium manual en 4723 → UND_ERR_HEADERS_TIMEOUT. "
             "Agregar check inicio Appium en run_on_pr.sh + run_android.sh."
         ),
+    },
+    {
+        "version": "2.2.1",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Trigger PR — validar fix DEC-04 (Appium externo, sin conflicto de puertos).",
     },
 ]
 
