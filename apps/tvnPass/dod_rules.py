@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.1.0"
+VERSION = "2.1.1"
 
 CHANGELOG = [
     {
@@ -92,6 +92,12 @@ CHANGELOG = [
             "Agregar soporte prefijo ~ en clickHelper. "
             "connectionRetryTimeout 120s→30s."
         ),
+    },
+    {
+        "version": "2.1.1",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Trigger PR — validar fix GOT-04 en device físico (tests sin cuelgue).",
     },
 ]
 
