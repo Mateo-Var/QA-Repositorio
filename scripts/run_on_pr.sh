@@ -106,16 +106,18 @@ APPIUM_PORT="${APPIUM_PORT%%/*}"
 # APPIUM_SERVER_URL apunte a otra IP (secret maskeado como ***).
 LOCAL_CHECK="http://localhost:${APPIUM_PORT}/status"
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
-if curl -sf "$LOCAL_CHECK" > /dev/null 2>&1; then
+if curl -sf --max-time 5 "$LOCAL_CHECK" > /dev/null 2>&1; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
-  # Liberar puerto si hay proceso zombie que lo ocupa sin responder HTTP
+  # Liberar puerto si hay proceso ocupándolo (zombie o instancia anterior)
   echo "   Appium no responde — liberando puerto ${APPIUM_PORT} si está ocupado..."
   powershell -Command "
-    Get-NetTCPConnection -LocalPort ${APPIUM_PORT} -ErrorAction SilentlyContinue |
-    ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }
+    \$conns = Get-NetTCPConnection -LocalPort ${APPIUM_PORT} -ErrorAction SilentlyContinue
+    foreach (\$c in \$conns) {
+      try { Stop-Process -Id \$c.OwningProcess -Force -ErrorAction Stop } catch {}
+    }
   " 2>/dev/null || true
-  sleep 2
+  sleep 4
   echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "reports/${APP_ID:-tvnPass}/logs"
   appium --port "${APPIUM_PORT}" --relaxed-security \

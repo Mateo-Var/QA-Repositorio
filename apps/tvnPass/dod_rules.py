@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.3.3"
+VERSION = "2.3.4"
 
 CHANGELOG = [
     {
@@ -147,6 +147,15 @@ CHANGELOG = [
         "date": "2026-04-15",
         "author": "santi",
         "changes": "Trigger PR — validar fix check Appium localhost + liberar puerto zombie.",
+    },
+    {
+        "version": "2.3.4",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": (
+            "Fix kill Appium zombie: foreach loop en PowerShell + sleep 4s. "
+            "curl --max-time 5 para evitar cuelgue en check."
+        ),
     },
 ]
 
