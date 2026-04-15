@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "2.3.0"
+VERSION = "2.3.1"
 
 CHANGELOG = [
     {
@@ -125,6 +125,12 @@ CHANGELOG = [
             "Los demás DODs (login, logout, búsqueda, etc.) quedan como especificación "
             "en DOD_TIMEOUTS hasta tener acceso a esos flujos en el device."
         ),
+    },
+    {
+        "version": "2.3.1",
+        "date": "2026-04-15",
+        "author": "santi",
+        "changes": "Trigger PR — validar pipeline completo con DOD-03 y Appium externo.",
     },
 ]
 
