@@ -37,18 +37,16 @@ describe('Navegación Inferior — tvnPass Android', () => {
   it('navegacion_click_boton_buscar', async () => {
     // Al clickear Buscar, debe navegar a la sección de búsqueda
     await clickElement('~Buscar');
-    // Esperar a que la pantalla de búsqueda cargue
-    // En este momento el UI map solo muestra en_vivo, así que verificamos que Buscar fue clickeado
     const buscarVisible = await pageContains('Buscar');
     expect(buscarVisible).toBe(true);
+    // Cerrar teclado antes del siguiente test — Buscar abre el teclado
+    await browser.execute('mobile: pressKey', { keycode: 4 });
+    await browser.pause(500);
   });
 
   it('navegacion_click_boton_menu', async () => {
-    // Reset: el test anterior dejó la pantalla de búsqueda con teclado abierto
-    await normalizarEstadoApp();
     // Al clickear Menú, debe abrir el menú lateral/modal
     await clickElement('~Menú');
-    // El menú debe abrirse, verificamos que el click fue procesado
     const menuVisible = await pageContains('Menú');
     expect(menuVisible).toBe(true);
   });
