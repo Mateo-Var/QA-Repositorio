@@ -36,4 +36,10 @@ describe('Reproductor Live — tvnPass Android', () => {
     expect(hoyVisible).toBe(true);
   });
 
+  it('reproductor_live_sin_pantalla_de_error', async () => {
+    // DOD-03: Con timeout de 12s el player no debe mostrar pantalla de error ni buffering colgado
+    const hayError = await pageContains('Error');
+    expect(hayError).toBe(false);
+  });
+
 });
