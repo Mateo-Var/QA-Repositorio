@@ -191,6 +191,8 @@ def execute_tests(input_json: dict) -> dict:
         shell=True,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=android_path,
         env=env,
     )
@@ -206,8 +208,8 @@ def execute_tests(input_json: dict) -> dict:
         "exit_code":   proc.returncode,
         "dod_status":  dod_status,
         "dod_failures": dod_failures,
-        "stdout":      proc.stdout[-3000:],  # últimas 3000 chars para no inflar
-        "stderr":      proc.stderr[-1000:],
+        "stdout":      (proc.stdout or "")[-3000:],
+        "stderr":      (proc.stderr or "")[-1000:],
     }, indent=2), encoding="utf-8")
 
     # Rutas de artefactos para Agent 3 y post_pr_comment
