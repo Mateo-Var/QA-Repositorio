@@ -121,7 +121,8 @@ ott-qa-pipeline/
 ├── scripts/
 │   ├── run_on_pr.sh                     ← trigger PR: Fase 0 + Fase 2 Android
 │   ├── run_suggestion.sh                ← trigger /qa: solo Fase 0 (sin Appium)
-│   ├── run_scheduled.sh                 ← trigger nightly Android
+│   ├── run_scheduled.sh                 ← trigger nightly Android (suite completa)
+│   ├── detect_ui_drift.sh               ← detección semanal drift UI — todas las apps
 │   ├── run_android.sh                   ← E2E Android: npm test:android
 │   ├── run_android_explorer.sh          ← wrapper Agente 0 Android
 │   ├── run_parallel.sh                  ← Fase 1 + E2E + Fase 3 en local
@@ -322,9 +323,49 @@ Cualquier sistema externo consume ese JSON sin depender de los internos del agen
 | Jira | Script `scripts/create_jira_ticket.py --app-id {app_id}` si hay DOD violations |
 | Otros agentes | Leen `reports/{app_id}/runs/latest.json` como input |
 | Nightly build | `run_scheduled.sh` itera sobre todos los `apps/*/` y lanza un run por app |
+| UI Drift Detection | `detect_ui_drift.sh` corre cada lunes via `nightly.yml` — Agente 0 por app, E2E solo si ui_map cambió, issue automático si falla |
 
 Para agregar un nuevo consumidor: crea un script en `scripts/` que lea el JSON de resultado.
 No modifiques los agentes.
+
+---
+
+## iOS — Roadmap (al migrar a Mac Mini)
+
+El sistema está preparado para iOS. Al migrar, agregar:
+
+### Agente 0 iOS
+- Crear `agents/explorer_ios.py` — misma interfaz que `explorer_android.py`
+- Usa XCUITest + WebDriverAgent (WDA) en lugar de UiAutomator2
+- Genera `apps/{app_id}/ui_map_ios.json`
+
+### Capabilities XCUITest en wdio.conf.js
+```javascript
+// Detectar plataforma desde APP_PLATFORM env var (android | ios)
+// iOS caps:
+{
+  platformName: 'iOS',
+  'appium:udid': process.env.IOS_DEVICE_UDID,
+  'appium:automationName': 'XCUITest',
+  'appium:bundleId': process.env.IOS_BUNDLE_ID,
+  'appium:noReset': true,
+  'appium:waitForIdleTimeout': 0,
+}
+```
+
+### UI Drift Detection iOS
+`detect_ui_drift.sh` ya detecta `ui_map_ios.json` y tiene el branch iOS listo.
+Solo necesita que `explorer_ios.py` exista — el resto es automático.
+
+### Selectores iOS — orden de preferencia
+| Prioridad | Selector | Cuándo |
+|-----------|----------|--------|
+| 1 | `~accessibility label` | Elementos con label de accesibilidad |
+| 2 | `id:com.bundle:id/nombre` | Resource-id estable |
+| 3 | `-ios predicate string` | Texto visible |
+| 4 | `-ios class chain` | Último recurso |
+
+**Nunca XPath en iOS** — igual que en Android con Compose.
 
 ---
 
