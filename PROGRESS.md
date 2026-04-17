@@ -19,9 +19,14 @@
 ### Fases solo en merge a main
 | Fase | Qué hace | Estado |
 |------|----------|--------|
-| **Fase 4** | Allure Report generado y publicado en GitHub Pages | ⏳ Pendiente |
-| **Fase 5** | Build Android AAB + iOS IPA vía Fastlane | ⏳ Pendiente |
-| **Fase 6** | Fastlane distribuye a Firebase App Distribution (Android) + TestFlight (iOS) → notificación Slack + 360 | ⏳ Pendiente |
+| **Fase 4** | Allure Report generado y publicado en GitHub Pages | ✅ Completo |
+| **Fase 5** | Build Android AAB + iOS IPA vía Fastlane | ⏳ Pendiente — requiere keystore |
+| **Fase 6** | Fastlane distribuye a Firebase App Distribution (Android) + TestFlight (iOS) → notificación Slack + 360 | ⏳ Pendiente — requiere Firebase + keystore |
+
+### Run semanal (lunes 8AM UTC)
+| Qué hace | Estado |
+|----------|--------|
+| **UI Drift Detection** — Agente 0 regenera ui_map por app · compara con el commiteado · E2E solo si cambió · issue en GitHub si E2E falla · ui_map se commitea automáticamente si todo pasa | ✅ Completo (Android) · ⏳ iOS pendiente |
 
 ---
 
@@ -82,16 +87,61 @@
 | Runner GitHub Actions | Windows PC self-hosted · label `android` | ✅ Activo |
 | Appium 3.x + UiAutomator2 | Mismo runner | ✅ Activo |
 | Mac Mini | Futuro self-hosted · Android + iOS en paralelo | ⏳ Migración pendiente |
-| Allure CLI | — | ⏳ No instalado |
+| Allure CLI | allure-commandline (npm devDep) | ✅ Configurado |
 | Fastlane | — | ⏳ No configurado |
 
 ---
 
 ## Próximos pasos (en orden)
 
-1. **Demo completo Fases 0-3** — Abrir PR con cambio mínimo en `dod_rules.py`, verificar que el Samsung se mueve, que se toman screenshots, que Agent 3 comenta en el PR con fotos + diagnóstico
-2. **Migrar a Mac Mini** — Registrar runner, cambiar `APPIUM_HOME` a secret, reemplazar step PowerShell por bash, validar ADB WiFi
-3. **Agregar iOS** — Agente 0 iOS (`explorer_ios.py`), XCUITest caps, correr E2E en paralelo con Android
-4. **Fase 4 — Allure** — `allure-commandline`, generar HTML post-merge, publicar en GitHub Pages
-5. **Fase 5 — Build** — `gradlew bundleRelease` (AAB) + `xcodebuild archive` (IPA) via Fastlane
-6. **Fase 6 — Distribución** — Firebase App Distribution (Android) + TestFlight (iOS) + notificación Slack + 360
+1. ~~Demo completo Fases 0-3~~ ✅
+2. ~~Fase 4 — Allure~~ ✅ — `@wdio/allure-reporter` + `allure-commandline`, artifact en cada PR, GitHub Pages en merge a main
+3. ~~UI Drift Detection semanal~~ ✅ — `detect_ui_drift.sh` + `nightly.yml` (lunes 8AM UTC)
+4. **Habilitar GitHub Pages** — Settings → Pages → Source → "GitHub Actions" (configuración manual única en el repo)
+5. **Fase 5 — Build** — `gradlew bundleRelease` (AAB) via Fastlane — pendiente keystore de firma
+6. **Fase 6 — Distribución** — Firebase App Distribution + notificación Slack — pendiente keystore + Firebase App ID
+7. **Migrar a Mac Mini** — Registrar runner, cambiar paths hardcodeados de Windows → variables, validar ADB WiFi
+8. **Agregar iOS (al migrar a Mac Mini):**
+   - Crear `agents/explorer_ios.py` (Agente 0 iOS — XCUITest + WDA)
+   - Caps XCUITest en `tests/wdio.conf.js` según `platform` del app_context
+   - E2E iOS en paralelo con Android desde el mismo runner
+   - `detect_ui_drift.sh` ya soporta iOS — solo necesita `explorer_ios.py` y `ui_map_ios.json`
+   - Allure report unificado Android + iOS
+
+9. **Conectar repo core al pipeline (cuando den acceso):**
+
+   El repo core contiene la lógica compartida de todas las apps. Los devs abren PRs ahí.
+   El objetivo es que esos PRs activen el análisis de Claude y los tests E2E igual que hoy.
+
+   **Estrategia elegida: trigger mínimo en core, toda la lógica queda en `ott-qa-pipeline`.**
+
+   *Qué hacer en el core repo (una sola vez):*
+   - Crear `.github/workflows/qa_trigger.yml` con estas ~10 líneas:
+     ```yaml
+     on:
+       pull_request:
+       issue_comment:
+         types: [created]
+     jobs:
+       trigger:
+         runs-on: ubuntu-latest
+         steps:
+           - run: |
+               gh workflow run qa_agent.yml \
+                 --repo mediastream/ott-qa-pipeline \
+                 --field source_repo="${{ github.repository }}" \
+                 --field base_sha="${{ github.event.pull_request.base.sha }}" \
+                 --field head_sha="${{ github.event.pull_request.head.sha }}" \
+                 --field pr_number="${{ github.event.pull_request.number }}"
+             env:
+               GH_TOKEN: ${{ secrets.QA_PIPELINE_TOKEN }}
+     ```
+   - Agregar secret `QA_PIPELINE_TOKEN` en el core repo (PAT con permiso `actions:write` en `ott-qa-pipeline`)
+
+   *Qué hacer en `ott-qa-pipeline`:*
+   - Agregar `source_repo` como input en `workflow_dispatch` de `qa_agent.yml`
+   - Modificar `run_on_pr.sh`: si viene `SOURCE_REPO`, hacer `git clone $SOURCE_REPO` usando deploy key y generar el diff desde ahí
+   - Agregar deploy key al runner (SSH read-only al core repo) — configuración de 5 minutos
+
+   *Por qué esta estrategia:*
+   Toda la lógica QA (agentes, tests, scripts) vive en un solo lugar. Al agregar una app nueva o cambiar el Agente 1, solo se toca `ott-qa-pipeline`. El core repo no sabe nada de QA — solo dispara el trigger.

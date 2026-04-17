@@ -82,3 +82,58 @@ jobs:
             -X POST -f content='-1'
         env:
           GH_TOKEN: ${{ github.token }}
+
+  qa-suggestion-issue:
+    # Solo correr si:
+    # 1. El comentario empieza con "/qa"
+    # 2. El comentario es en un issue plano (NO en un PR)
+    if: |
+      startsWith(github.event.comment.body, '/qa') &&
+      github.event.issue.pull_request == null
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Reaccionar al comentario (ACK)
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='eyes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run QA Suggestion (Fase 0 — Issue)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          APP_ID:             ${{ secrets.APP_ID || 'tvnPass' }}
+          GH_TOKEN:           ${{ github.token }}
+          GITHUB_REPOSITORY:  ${{ github.repository }}
+        run: |
+          chmod +x scripts/run_suggestion_issue.sh
+          ./scripts/run_suggestion_issue.sh "${{ github.event.issue.number }}"
+
+      - name: Reaccionar al comentario (DONE)
+        if: success()
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='+1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Reaccionar al comentario (ERROR)
+        if: failure()
+        run: |
+          gh api repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions \
+            -X POST -f content='-1'
+        env:
+          GH_TOKEN: ${{ github.token }}

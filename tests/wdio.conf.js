@@ -64,7 +64,14 @@ exports.config = {
     timeout: 240000,
   },
 
-  reporters: ['spec'],
+  reporters: [
+    'spec',
+    ['allure', {
+      outputDir: path.resolve(__dirname, `../reports/${APP_ID}/allure-results`),
+      disableWebdriverStepsReporting: true,
+      disableWebdriverScreenshotsReporting: false,
+    }],
+  ],
 
   // ── Screenshot automático por test ────────────────────────────────────────
   // afterEach guarda screenshot en happy_path/ si pasó, failures/ si falló.
@@ -140,7 +147,16 @@ exports.config = {
     }
   },
 
-  onComplete() {
+  async onComplete() {
+    const { execSync } = require('child_process');
+    const publishScript = path.resolve(__dirname, '../scripts/publish-report.js');
+    const resultsDir    = path.resolve(__dirname, '../reports', APP_ID, 'allure-results');
+    console.log('\n[onComplete] Publicando reporte Allure en GitHub Pages...');
+    try {
+      execSync(`node "${publishScript}" "${resultsDir}"`, { stdio: 'inherit', timeout: 120000 });
+    } catch (e) {
+      console.warn('[onComplete] No se pudo publicar el reporte:', e.message.split('\n')[0]);
+    }
     setTimeout(() => process.exit(0), 2000);
   },
 };

@@ -228,34 +228,39 @@ def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None =
 
 # ── Publicar comentario ───────────────────────────────────────────────────────
 
-def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edit: bool = False) -> bool:
+def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edit: bool = False, issue_mode: bool = False) -> bool:
     if dry_run:
         mode_label = "EDITAR último" if edit else "CREAR nuevo"
-        print(f"── DRY RUN ({mode_label}) — comentario que se publicaría ──")
+        target = f"issue #{pr_number}" if issue_mode else f"PR #{pr_number}"
+        print(f"── DRY RUN ({mode_label}) — comentario que se publicaría en {target} ──")
         print(body)
         print("────────────────────────────────────────────")
         return True
 
-    base_cmd = ["gh", "pr", "comment", str(pr_number), "--body", body]
+    if issue_mode:
+        base_cmd = ["gh", "issue", "comment", str(pr_number), "--body", body]
+    else:
+        base_cmd = ["gh", "pr", "comment", str(pr_number), "--body", body]
     if repo:
         base_cmd += ["--repo", repo]
 
+    target_label = f"issue #{pr_number}" if issue_mode else f"PR #{pr_number}"
     try:
-        if edit:
-            # Intenta editar el último comentario del bot; si no existe, crea uno nuevo
+        if edit and not issue_mode:
+            # gh issue comment no soporta --edit-last — solo aplica en PRs
             edit_result = subprocess.run(
                 base_cmd + ["--edit-last"], capture_output=True, text=True,
                 encoding="utf-8", timeout=30
             )
             if edit_result.returncode == 0:
-                print(f"✅ Comentario actualizado en PR #{pr_number}")
+                print(f"✅ Comentario actualizado en {target_label}")
                 return True
             print("ℹ️  Sin comentario previo del bot, creando uno nuevo...")
 
         result = subprocess.run(base_cmd, capture_output=True, text=True,
                                 encoding="utf-8", timeout=30)
         if result.returncode == 0:
-            print(f"✅ Comentario publicado en PR #{pr_number}")
+            print(f"✅ Comentario publicado en {target_label}")
             return True
         else:
             print(f"⚠️  gh falló (exit {result.returncode}): {result.stderr.strip()}")
@@ -286,6 +291,7 @@ def main():
     parser.add_argument("--repo",    default=None,  help="owner/repo (opcional)")
     parser.add_argument("--dry-run", action="store_true", help="Imprimir sin publicar")
     parser.add_argument("--edit",    action="store_true", help="Editar el último comentario del bot en lugar de crear uno nuevo")
+    parser.add_argument("--issue",   action="store_true", help="Publicar en issue (gh issue comment) en vez de PR")
     parser.add_argument("--run-url", default="", help="URL del run de GitHub Actions para link de artifacts")
     args = parser.parse_args()
 
@@ -309,7 +315,7 @@ def main():
             print(f"⚠️  No se pudo leer agent3 output: {e}")
 
     comment = build_comment(agent1, agent2, args.run_id, agent3, run_url=args.run_url)
-    post_comment(args.pr, comment, args.repo, args.dry_run, args.edit)
+    post_comment(args.pr, comment, args.repo, args.dry_run, args.edit, issue_mode=args.issue)
 
     # DEC-06: no bloquear el pipeline si gh falla
     sys.exit(0)

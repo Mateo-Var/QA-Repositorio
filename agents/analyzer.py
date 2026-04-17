@@ -109,16 +109,23 @@ def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
     app_context = load_app_context(app_id)
     dod_rules = load_dod_rules(app_id)
     skills = load_skills(app_id, diff=diff)  # carga selectiva basada en el diff
+
+    if trigger.get("type") == "issue_comment":
+        change_section = (
+            "## Solicitud del issue\n"
+            f"**Título:** {trigger.get('issue_title', '')}\n\n"
+            f"**Descripción:**\n{trigger.get('issue_body') or 'Sin descripción.'}"
+        )
+    else:
+        change_section = f"## Diff del cambio\n```\n{diff}\n```"
+
     return f"""## App
 {app_id}
 
 ## Trigger
 {json.dumps(trigger, indent=2)}
 
-## Diff del cambio
-```
-{diff}
-```
+{change_section}
 
 ## Contexto de la app
 {app_context}

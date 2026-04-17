@@ -3,6 +3,8 @@ name: QA Agent — Android
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -10,10 +12,10 @@ on:
         required: false
         default: "0"
 
-# Permisos globales — permite publicar comentarios en PRs
+# Permisos globales
 permissions:
   pull-requests: write
-  contents: read
+  contents: write    # necesario para git push a gh-pages desde el runner
 
 # ── Job 0: Sugerencia Claude (ubuntu, sin dispositivo) ───────────────────────
 jobs:
@@ -70,7 +72,7 @@ jobs:
     needs: unit-tests
     runs-on: [self-hosted, android]   # Windows ahora / Mac Mini después — mismo label
     timeout-minutes: 60
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@v4
@@ -123,3 +125,5 @@ jobs:
 
 # Nota: Fase 3 (Validación Visual) corre dentro de run_on_pr.sh en el runner
 # self-hosted donde los screenshots están disponibles localmente.
+# Nota: Fase 4 (Allure + GitHub Pages) corre dentro de onComplete en wdio.conf.js
+# via scripts/publish-report.js — publica después de cada run, guarda historial.
