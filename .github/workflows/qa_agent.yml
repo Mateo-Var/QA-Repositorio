@@ -3,8 +3,6 @@ name: QA Agent — Android
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       pr_number:
