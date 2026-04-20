@@ -32,8 +32,8 @@ echo "════════════════════════�
 # Si Appium ya corre (usuario manual o CI previo) se reutiliza; si no, lo inicia.
 
 # Exportar ANDROID_HOME y JAVA_HOME para que Appium (proceso background) los herede.
-export ANDROID_HOME="${ANDROID_HOME:-C:/Users/santi/AppData/Local/Microsoft/WinGet/Packages/Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe/platform-tools}"
-export JAVA_HOME="${JAVA_HOME:-C:/Program Files/Microsoft/jdk-21.0.10.7-hotspot}"
+export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/bin}"
+export JAVA_HOME="${JAVA_HOME:-/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home}"
 export PATH="${ANDROID_HOME}:${JAVA_HOME}/bin:${PATH}"
 
 APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
@@ -57,12 +57,7 @@ if _appium_up; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
   echo "   Appium no responde — liberando puerto ${APPIUM_PORT} si está ocupado..."
-  powershell -Command "
-    \$conns = Get-NetTCPConnection -LocalPort ${APPIUM_PORT} -ErrorAction SilentlyContinue
-    foreach (\$c in \$conns) {
-      try { Stop-Process -Id \$c.OwningProcess -Force -ErrorAction Stop } catch {}
-    }
-  " 2>/dev/null || true
+  lsof -ti :"${APPIUM_PORT}" | xargs kill -9 2>/dev/null || true
   sleep 4
   echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "$ROOT/reports/$APP_ID/logs"
