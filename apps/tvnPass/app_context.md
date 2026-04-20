@@ -80,3 +80,13 @@ TEST_USER_PASSWORD=
 - Delay de 20-40s en live TV respecto al broadcast es comportamiento esperado, no fallo.
 - `browser.getPageSource()` + `.includes()` es 3-5x más rápido que `findElement` para checks de presencia.
 - El popup de "Appium Settings actualizando" puede aparecer al iniciar sesión — es transitorio, no es fallo del test.
+
+## Hero EPG — Comportamiento crítico
+
+- **Posición dinámica:** El Hero EPG puede cambiar de posición en pantalla en cualquier momento. NUNCA usar coordenadas fijas. Siempre localizar por content-desc o texto.
+- **Tabs EPG:** Los tabs de navegación son `Anteayer`, `Ayer`, `Hoy`, `Mañana`. Los tests deben hacer click real en cada tab y validar que cargó. `Hoy` siempre debe existir.
+- **Canales dinámicos:** Los canales disponibles varían en cualquier momento. Siempre detectar canales activos con `UiSelector.descriptionMatches(".*•.*")` antes de intentar cambiar de canal.
+- **Georestrición:** Puede haber canales con georestrición. Señales: `no disponible en tu región`, `contenido no disponible`, `geo`, `región`. Si aparece tras cambiar canal, saltar al siguiente disponible.
+- **EN VIVO variantes:** El botón/sección EN VIVO puede aparecer como `EN VIVO`, `TVN EN VIVO`, `En Vivo`. Siempre usar `pageContainsAny` con todas las variantes.
+- **VER AHORA:** Botón opcional dentro de TVN EN VIVO — presionar solo si está visible (`pageContainsAny(['VER AHORA', 'Ver ahora'])`).
+- **Appium `*:adb_shell`:** El servidor Appium debe arrancarse con `--allow-insecure "*:adb_shell"` para que `tapAdb`/`swipeAdb` funcionen vía `mobile: shell`.

@@ -10,6 +10,10 @@ process.env.JAVA_HOME    = JAVA_HOME;
 process.env.ANDROID_HOME = ADB_PATH;
 process.env.PATH         = `${ADB_PATH}:${JAVA_HOME}/bin:${process.env.PATH}`;
 
+// APPIUM_HOME apunta al directorio dedicado donde se instaló el driver uiautomator2.
+// ~/appium-home evita conflictos con el caché anidado de node_modules.
+process.env.APPIUM_HOME  = require('os').homedir() + '/appium-home';
+
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
 // APP_ID determina qué specs se cargan — un solo runner, múltiples apps
 const APP_ID       = (process.env.APP_ID             || 'tvnPass').trim();
@@ -41,11 +45,14 @@ exports.config = {
     'appium:appActivity':            APP_ACTIVITY,
     'appium:automationName':         'UiAutomator2',
     'appium:noReset':                true,
-    'appium:newCommandTimeout':      60,
-    'appium:adbExecTimeout':         30000,
+    'appium:newCommandTimeout':      120,
+    'appium:adbExecTimeout':         60000,
     // DEC-01: crítico en apps de streaming con animaciones continuas
     'appium:waitForIdleTimeout':     0,
     'appium:waitForSelectorTimeout': 0,
+    // Compatibilidad MIUI/HyperOS (Xiaomi) y Samsung — AUTOMATION_LESSONS.md
+    'appium:skipDeviceInitialization':  true,
+    'appium:ignoreHiddenApiPolicyError': true,
   }],
 
   logLevel:               'warn',
@@ -54,6 +61,8 @@ exports.config = {
   connectionRetryTimeout: 120000,  // 120s para session creation (UiAutomator2 tarda ~74s en arrancar)
   connectionRetryCount:   3,
 
+  // @wdio/appium-service arranca Appium in-process y hereda el APPIUM_HOME configurado arriba.
+  // Más confiable que un servidor externo para desarrollo local en Windows.
   // Sin @wdio/appium-service — conectamos al Appium externo en APPIUM_SERVER_URL.
   // Arrancar Appium es responsabilidad de run_android.sh (DEC-04).
   services: [],

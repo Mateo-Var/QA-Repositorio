@@ -77,4 +77,46 @@ async function normalizarEstadoApp() {
   }
 }
 
-module.exports = { normalizarEstadoApp, APP_ID };
+/**
+ * Cierra el popup promocional si aparece ("OMITIR" button).
+ * Portado de appium-test/utils/helpers.js — aparece tras algunas navegaciones.
+ * Retorna true si cerró el popup, false si no había popup.
+ */
+async function dismissPromoPopupIfVisible() {
+  try {
+    const el = await $('android=new UiSelector().textContains("OMITIR")');
+    if (await el.isExisting()) {
+      await el.click();
+      await browser.pause(600);
+      console.log('[estado] popup promo descartado');
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+/**
+ * Verifica que la app esté en foreground.
+ * Portado de appium-test/utils/helpers.js — útil en beforeEach de suites largas.
+ * No lanza excepción si falla — continúa de todos modos.
+ */
+async function ensureAppInForeground() {
+  try {
+    const pkg = await browser.getCurrentPackage();
+    if (pkg === APP_ID) return true;
+  } catch (_) {}
+  try {
+    await browser.execute('mobile: activateApp', { appId: APP_ID });
+    await browser.pause(2000);
+    return true;
+  } catch (_) {}
+  try {
+    await browser.activateApp(APP_ID);
+    await browser.pause(2000);
+    return true;
+  } catch (_) {}
+  console.log('[estado] ADVERTENCIA: no se pudo confirmar app en foreground — continuando');
+  return false;
+}
+
+module.exports = { normalizarEstadoApp, dismissPromoPopupIfVisible, ensureAppInForeground, APP_ID };

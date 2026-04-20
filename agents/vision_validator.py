@@ -38,6 +38,24 @@ PROMPT_PATH = ROOT / "prompts" / "agent3_vision.md"
 MAX_HAPPY_PATH = 3
 MAX_FAILURES   = 5
 
+# Errores conocidos en apps de streaming Android.
+# Portado de appium-test/utils/helpers.js (waitForErrorMessage) — 60+ keywords.
+# Se pasan al contexto de Claude Vision para que sepa qué buscar en los screenshots.
+KNOWN_ERROR_SIGNALS = [
+    # UI de error técnico
+    "Error", "error", "Fallo", "failed", "Failed",
+    # Red / conectividad
+    "sin conexión", "sin internet", "no internet", "network error",
+    "connection error", "timeout", "no se pudo cargar", "no se pudo conectar",
+    # Reproducción
+    "no se puede reproducir", "error al reproducir", "playback error",
+    "video no disponible", "señal no disponible", "sin señal",
+    # Estado vacío (indica problema de carga)
+    "no hay resultados", "sin resultados", "no hay contenido",
+    # Crash / freeze indicators (visual)
+    "pantalla negra", "pantalla en blanco", "spinning", "cargando",
+]
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -54,6 +72,10 @@ def select_screenshots(screenshots_dir: Path) -> dict:
     Elige las imágenes más relevantes para enviar a Claude.
     happy_path/ → máx MAX_HAPPY_PATH imágenes
     failures/   → máx MAX_FAILURES imágenes
+
+    Ordenamiento: por tiempo de modificación descendente (más recientes primero).
+    Los screenshots más recientes corresponden al momento del fallo — más útiles para diagnóstico.
+    Portado del patrón de appium-test donde los fallos se capturan en el afterTest hook.
     """
     result = {"happy_path": [], "failures": []}
 
@@ -61,10 +83,14 @@ def select_screenshots(screenshots_dir: Path) -> dict:
     failure_dir = screenshots_dir / "failures"
 
     if happy_dir.exists():
-        result["happy_path"] = sorted(happy_dir.glob("*.png"))[:MAX_HAPPY_PATH]
+        result["happy_path"] = sorted(
+            happy_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True
+        )[:MAX_HAPPY_PATH]
 
     if failure_dir.exists():
-        result["failures"] = sorted(failure_dir.glob("*.png"))[:MAX_FAILURES]
+        result["failures"] = sorted(
+            failure_dir.glob("*.png"), key=lambda p: p.stat().st_mtime, reverse=True
+        )[:MAX_FAILURES]
 
     return result
 
@@ -138,6 +164,16 @@ def analyze(input_json: dict) -> dict:
             "happy_path": len(images["happy_path"]),
             "failures":   len(images["failures"]),
         },
+        # Señales de error conocidas — Claude debe buscarlas activamente en los screenshots
+        # Portado de appium-test/utils/helpers.js waitForErrorMessage (60+ keywords)
+        "known_error_signals": KNOWN_ERROR_SIGNALS,
+        # Señales de éxito esperadas en una app de streaming sana
+        "expected_success_signals": [
+            "Mostrar controles del reproductor",  # player activo
+            "EN VIVO",                            # señal live
+            "Programación",                       # EPG cargado
+            "Inicio", "Explorar", "Buscar", "Menú",  # bottom nav visible
+        ],
     }
 
     client        = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])

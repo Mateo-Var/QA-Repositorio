@@ -94,6 +94,36 @@ def generate_tests(input_json: dict) -> dict:
         "agent_context":     input_json.get("context", {}),
         "ui_map":            ui_map,
         "app_context":       app_ctx_text,
+        # Patrones de contenido dinámico portados de appium-test — usar en regex/assertions
+        "content_patterns": {
+            "live_channel":    "EN VIVO,[^\"]+",          # content-desc de tarjetas live
+            "current_channel": "ESTÁS VIENDO,[^\"]+",     # canal activo en EN VIVO
+            "episode":         r"\s·\s.+\sMIN",           # metadata de episodio VOD
+            "show":            "PROGRAMA DE TELEVISI",     # shows en catálogo VOD
+            "section_near_ver_todo": "VER TODO",          # proximidad a secciones de home
+            "canal_programa":  ".*•.*",                   # UiSelector pattern para tarjetas de canal activo
+        },
+        # Comportamiento conocido del Hero EPG — crítico para generar tests robustos
+        "hero_epg_notes": {
+            "posicion_dinamica":    "El Hero EPG puede cambiar de posición en pantalla en cualquier momento — NUNCA usar coordenadas fijas, siempre usar content-desc o text selectors",
+            "tabs_epg":             "Los tabs de navegación son: Anteayer, Ayer, Hoy, Mañana — siempre hacer click real en cada uno, no solo validar texto",
+            "canales_dinamicos":    "Los canales disponibles varían en cualquier momento — siempre detectar cuáles están activos con UiSelector.descriptionMatches('.*•.*') antes de cambiar",
+            "georestricion":        "Puede haber canales con georestrición — señales: 'no disponible en tu región', 'contenido no disponible', 'geo', 'región' — si aparece, saltar al siguiente canal",
+            "en_vivo_variantes":    "El botón EN VIVO puede aparecer como 'EN VIVO', 'TVN EN VIVO', 'En Vivo' — usar pageContainsAny con todas las variantes",
+        },
+        # Helpers disponibles para usar en los tests generados
+        "helper_usage_notes": {
+            "getSource":    "Para obtener page source con reintentos — solo en pantallas SIN video live",
+            "tapAdb":       "tap via ADB shell — más confiable que el.click() en Samsung/MIUI",
+            "tapByBounds":  "extrae bounds del page source y hace ADB tap",
+            "swipeAdb":     "swipe via ADB — para carousels y scroll horizontal. Usar 5%-95% del ancho para swipes largos",
+            "boundsOf":     "extrae coordenadas de UN elemento del page source",
+            "allBoundsOf":  "extrae coordenadas de TODOS los elementos que hacen match",
+            "waitAndClick": "espera hasta que el elemento aparezca y hace click",
+            "dismissPromoPopupIfVisible": "cierra popup OMITIR si aparece",
+            "ensureAppInForeground":      "verifica que la app está en foreground",
+            "pageContainsAny":            "verifica presencia de cualquiera de una lista de textos — usar para variantes de labels dinámicos",
+        },
     }
 
     messages = [{"role": "user", "content": json.dumps(context, indent=2)}]

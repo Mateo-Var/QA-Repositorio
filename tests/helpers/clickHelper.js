@@ -21,4 +21,26 @@ async function clickText(text) {
 // Alias para compatibilidad con tests generados por Agent 2
 const clickElement = clickText;
 
-module.exports = { clickText, clickElement };
+/**
+ * Espera hasta que el texto aparezca en la UI y luego hace click.
+ * Portado de appium-test/utils/helpers.js (tapByText con timeout).
+ * Útil cuando el elemento puede tardar en aparecer (animaciones, carga).
+ */
+async function waitAndClick(text, timeoutMs = 10000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const el = text.startsWith('~')
+        ? await $(`~${text.slice(1)}`)
+        : await $(`android=new UiSelector().text("${text}")`);
+      if (await el.isExisting()) {
+        await el.click();
+        return;
+      }
+    } catch (_) {}
+    await browser.pause(500);
+  }
+  throw new Error(`waitAndClick: "${text}" no apareció en ${timeoutMs}ms`);
+}
+
+module.exports = { clickText, clickElement, waitAndClick };
