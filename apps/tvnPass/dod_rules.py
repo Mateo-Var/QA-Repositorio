@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.7"
+VERSION = "3.0.8"
 
 CHANGELOG = [
     {
@@ -267,6 +267,12 @@ CHANGELOG = [
         "date": "2026-04-20",
         "author": "santi",
         "changes": "Trigger CI — UiAutomator2 instalado en ~/.appium global.",
+    },
+    {
+        "version": "3.0.8",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry.",
     },
 ]
 
