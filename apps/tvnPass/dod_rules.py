@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.3"
+VERSION = "3.0.9"
 
 CHANGELOG = [
     {
@@ -243,6 +243,42 @@ CHANGELOG = [
         "date": "2026-04-20",
         "author": "santi",
         "changes": "Trigger CI — fix python symlink → python3.11 en Mac Mini.",
+    },
+    {
+        "version": "3.0.4",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — fix PATH /opt/homebrew/bin en workflow para runner Mac Mini.",
+    },
+    {
+        "version": "3.0.5",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry con Samsung desbloqueado.",
+    },
+    {
+        "version": "3.0.6",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — gh CLI instalado, Samsung desbloqueado.",
+    },
+    {
+        "version": "3.0.7",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — UiAutomator2 instalado en ~/.appium global.",
+    },
+    {
+        "version": "3.0.8",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry.",
+    },
+    {
+        "version": "3.0.9",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry 2.",
     },
 ]
 
