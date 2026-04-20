@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.2"
+VERSION = "3.0.3"
 
 CHANGELOG = [
     {
@@ -237,6 +237,12 @@ CHANGELOG = [
         "date": "2026-04-20",
         "author": "santi",
         "changes": "Trigger CI — primer run desde Mac Mini como runner self-hosted.",
+    },
+    {
+        "version": "3.0.3",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — fix python symlink → python3.11 en Mac Mini.",
     },
 ]
 
