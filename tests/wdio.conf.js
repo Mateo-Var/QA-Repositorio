@@ -2,13 +2,13 @@ const path = require('path');
 
 // ── Rutas del entorno ─────────────────────────────────────────────────────────
 const ADB_PATH = process.env.ANDROID_HOME ||
-  'C:\\Users\\santi\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe\\platform-tools';
+  '/opt/homebrew/bin';
 const JAVA_HOME = process.env.JAVA_HOME ||
-  'C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot';
+  '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home';
 
 process.env.JAVA_HOME    = JAVA_HOME;
 process.env.ANDROID_HOME = ADB_PATH;
-process.env.PATH         = `${ADB_PATH};${JAVA_HOME}\\bin;${process.env.PATH}`;
+process.env.PATH         = `${ADB_PATH}:${JAVA_HOME}/bin:${process.env.PATH}`;
 
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
 // APP_ID determina qué specs se cargan — un solo runner, múltiples apps
