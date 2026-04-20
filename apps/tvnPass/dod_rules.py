@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.8"
+VERSION = "3.0.9"
 
 CHANGELOG = [
     {
@@ -273,6 +273,12 @@ CHANGELOG = [
         "date": "2026-04-20",
         "author": "santi",
         "changes": "Trigger CI — retry.",
+    },
+    {
+        "version": "3.0.9",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry 2.",
     },
 ]
 
