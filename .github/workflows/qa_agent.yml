@@ -104,7 +104,7 @@ jobs:
         run: |
           export PATH="/opt/homebrew/bin:$PATH"
           export APPIUM_HOME="$HOME/.appium"
-          python -m pip install -r requirements.txt --quiet
+          python3 -m pip install -r requirements.txt --quiet
           if [[ -n "$BASE_SHA" ]]; then
             # PR — flujo completo: Agente 1 + Agente 2 + Agente 3 + tests
             bash scripts/run_on_pr.sh "$PR_NUMBER" "$BASE_SHA" "$HEAD_SHA"
@@ -131,6 +131,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
