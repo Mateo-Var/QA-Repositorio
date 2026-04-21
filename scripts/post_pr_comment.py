@@ -20,6 +20,8 @@ Uso:
     python scripts/post_pr_comment.py --pr 42 --agent1 ... --agent2 ... --dry-run
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import subprocess
