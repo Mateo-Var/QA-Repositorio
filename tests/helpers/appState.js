@@ -6,7 +6,10 @@
  * GOT-04: getPageSource() reemplazado por UiSelector.isExisting() — no cuelga en streaming.
  */
 
-const APP_ID = process.env.ANDROID_APP_PACKAGE || 'com.streann.tvnpass';
+const IS_IOS = (process.env.APP_PLATFORM || 'android').trim().toLowerCase() === 'ios';
+const APP_ID = IS_IOS
+  ? (process.env.IOS_BUNDLE_ID || 'com.tvn-2.appletv')
+  : (process.env.ANDROID_APP_PACKAGE || 'com.streann.tvnpass');
 
 async function _enHomeScreen() {
   try {
