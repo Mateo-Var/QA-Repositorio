@@ -58,6 +58,8 @@ def formato_dod(dod_status: str, dod_failures: list) -> str:
     if dod_status == "failed":
         failures_md = "\n".join(f"  - `{f}`" for f in dod_failures)
         return f"🔴 **DOD: FAILED** — tests bloqueantes fallaron:\n{failures_md}"
+    if dod_status == "running":
+        return "⏳ **Tests corriendo en dispositivo...**"
     return "⚪ **DOD: sin datos**"
 
 

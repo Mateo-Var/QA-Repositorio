@@ -108,6 +108,27 @@ with open(path, "w", encoding="utf-8") as f:
 PYEOF
 echo "Agente 1 completado."
 
+# ── 3b. Comentario inicial (iOS no tiene suggest job propio) ─────────────────
+# Android: el suggest job (ubuntu) ya posteó el comentario inicial con el marcador.
+# iOS: no hay suggest job → se postea aquí con Agent 1 + estado "running".
+if [ "$PLATFORM" = "ios" ] && [ "${PR_NUMBER}" != "0" ]; then
+  RUN_URL_INIT="${GITHUB_SERVER_URL:-}/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_ACTIONS_RUN_ID:-}"
+  python3 - "${TMP_DIR}/agent2_init.json" "$PLATFORM" <<'PYEOF'
+import json, sys
+out, plat = sys.argv[1], sys.argv[2]
+json.dump({"mode": "running", "platform": plat, "dod_status": "running"}, open(out, "w"))
+PYEOF
+  python3 scripts/post_pr_comment.py \
+    --pr "${PR_NUMBER}" \
+    --agent1 "$AGENT1_OUTPUT" \
+    --agent2 "${TMP_DIR}/agent2_init.json" \
+    --run-id "${RUN_ID}" \
+    --run-url "${RUN_URL_INIT}" \
+    --platform ios \
+    --device "iPhone 16e" \
+    || true
+fi
+
 # ── 4a. Verificar/iniciar Appium (DEC-04) ────────────────────────────────────
 # wdio.conf.js conecta a Appium externo — no arranca el suyo propio.
 # Si ya corre en la URL de la plataforma se reutiliza; si no, lo inicia.
