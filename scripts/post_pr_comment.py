@@ -144,23 +144,42 @@ def build_vision_section(agent3: dict, run_url: str = "") -> list:
     return lines
 
 
-def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None = None, run_url: str = "") -> str:
+PLATFORM_ICONS = {
+    "android": "🤖",
+    "ios":     "🍎",
+}
+DEVICE_DEFAULTS = {
+    "android": "Samsung R5CTB1W92KY",
+    "ios":     "iPhone 16e",
+}
+
+
+def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None = None,
+                  run_url: str = "", platform: str = "android", device: str = "") -> str:
     app_id      = agent1.get("app_id", "desconocido")
     risk        = agent1.get("risk_level", "DESCONOCIDO")
     razon       = agent1.get("reason", "")
     sugerencias = agent1.get("suggestions", [])
 
-    mode        = agent2.get("mode", "")
-    dod_status  = agent2.get("dod_status", "unknown")
+    mode         = agent2.get("mode", "")
+    dod_status   = agent2.get("dod_status", "unknown")
     dod_failures = agent2.get("dod_failures", [])
-    exit_code   = agent2.get("exit_code", -1)
-    report_path = agent2.get("report_path", "")
-    generated   = agent2.get("generated_files", [])
+    exit_code    = agent2.get("exit_code", -1)
+    report_path  = agent2.get("report_path", "")
+    generated    = agent2.get("generated_files", [])
+    tests_passed = agent2.get("tests_passed")
+    tests_total  = agent2.get("tests_total")
+
+    plat_icon   = PLATFORM_ICONS.get(platform, "📱")
+    plat_label  = platform.upper()
+    device_name = device or DEVICE_DEFAULTS.get(platform, "")
 
     lines = [
         f"## 🤖 QA Agent — Run `{run_id}`",
         "",
         f"**App:** `{app_id}` &nbsp;|&nbsp; **Riesgo:** {formato_riesgo(risk)}",
+        "",
+        f"### {plat_icon} {plat_label} — {device_name}",
         "",
     ]
 
@@ -173,10 +192,11 @@ def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None =
     # ── Resultado de ejecución ────────────────────────────────────────────────
     if mode == "execute":
         status_icon = "✅" if exit_code == 0 else "❌"
+        tests_str = f"{tests_passed}/{tests_total} tests pasaron" if tests_passed is not None else f"exit code `{exit_code}`"
         lines += [
             f"### {status_icon} Resultado E2E",
             "",
-            f"- Exit code: `{exit_code}`",
+            f"- **{tests_str}**",
         ]
         if report_path:
             lines.append(f"- Reporte: `{report_path}`")
@@ -292,7 +312,9 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Imprimir sin publicar")
     parser.add_argument("--edit",    action="store_true", help="Editar el último comentario del bot en lugar de crear uno nuevo")
     parser.add_argument("--issue",   action="store_true", help="Publicar en issue (gh issue comment) en vez de PR")
-    parser.add_argument("--run-url", default="", help="URL del run de GitHub Actions para link de artifacts")
+    parser.add_argument("--run-url",  default="", help="URL del run de GitHub Actions para link de artifacts")
+    parser.add_argument("--platform", default="android", choices=["android", "ios"], help="Plataforma del run")
+    parser.add_argument("--device",   default="", help="Nombre del dispositivo (ej: Samsung R5CTB1W92KY)")
     args = parser.parse_args()
 
     try:
@@ -314,7 +336,8 @@ def main():
         except Exception as e:
             print(f"⚠️  No se pudo leer agent3 output: {e}")
 
-    comment = build_comment(agent1, agent2, args.run_id, agent3, run_url=args.run_url)
+    comment = build_comment(agent1, agent2, args.run_id, agent3,
+                            run_url=args.run_url, platform=args.platform, device=args.device)
     post_comment(args.pr, comment, args.repo, args.dry_run, args.edit, issue_mode=args.issue)
 
     # DEC-06: no bloquear el pipeline si gh falla

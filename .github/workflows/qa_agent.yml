@@ -165,6 +165,35 @@ jobs:
           # Correr suite iOS
           APP_PLATFORM=ios APP_ID=tvnPass npm run test:android
 
+      - name: Publicar comentario iOS en PR
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          # Generar agent2 output mínimo con resultado del run
+          EXIT=$?
+          python3 -c "
+          import json, glob, re
+          results = glob.glob('reports/tvnPass/allure-results/*.json')
+          passed = sum(1 for f in results if json.load(open(f)).get('status') == 'passed')
+          total  = len(results)
+          out = {'mode': 'execute', 'dod_status': 'passed' if passed == total else 'failed',
+                 'dod_failures': [], 'exit_code': 0 if passed == total else 1,
+                 'tests_passed': passed, 'tests_total': total}
+          json.dump(out, open('/tmp/agent2_ios.json','w'))
+          " || echo '{"mode":"execute","dod_status":"unknown","dod_failures":[],"exit_code":1}' > /tmp/agent2_ios.json
+          echo '{}' > /tmp/agent1_ios.json
+          python3 scripts/post_pr_comment.py \
+            --pr "${{ github.event.pull_request.number }}" \
+            --agent1 /tmp/agent1_ios.json \
+            --agent2 /tmp/agent2_ios.json \
+            --run-id "${{ github.run_id }}" \
+            --platform ios \
+            --device "iPhone 16e" \
+            --repo "${{ github.repository }}"
+
       - name: Upload iOS reports
         if: always()
         uses: actions/upload-artifact@v4
