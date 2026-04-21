@@ -24,11 +24,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
+
+# Marcadores HTML invisibles — permiten identificar el comentario de cada plataforma
+PLATFORM_MARKER = {
+    "android": "<!-- QA-ANDROID -->",
+    "ios":     "<!-- QA-IOS -->",
+}
 
 
 # ── Formateo del comentario ───────────────────────────────────────────────────
@@ -158,6 +166,7 @@ DEVICE_DEFAULTS = {
 
 def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None = None,
                   run_url: str = "", platform: str = "android", device: str = "") -> str:
+    marker = PLATFORM_MARKER.get(platform, f"<!-- QA-{platform.upper()} -->")
     app_id      = agent1.get("app_id", "desconocido")
     risk        = agent1.get("risk_level", "DESCONOCIDO")
     razon       = agent1.get("reason", "")
@@ -177,6 +186,7 @@ def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None =
     device_name = device or DEVICE_DEFAULTS.get(platform, "")
 
     lines = [
+        marker,
         f"## 🤖 QA Agent — Run `{run_id}`",
         "",
         f"**App:** `{app_id}` &nbsp;|&nbsp; **Riesgo:** {formato_riesgo(risk)}",
@@ -248,9 +258,42 @@ def build_comment(agent1: dict, agent2: dict, run_id: str, agent3: dict | None =
     return "\n".join(lines)
 
 
+# ── Buscar comentario existente por marcador de plataforma ───────────────────
+
+def find_platform_comment_id(pr_number: int, platform: str, repo: str) -> int | None:
+    marker = PLATFORM_MARKER.get(platform, f"<!-- QA-{platform.upper()} -->")
+    try:
+        result = subprocess.run(
+            ["gh", "api", f"repos/{repo}/issues/{pr_number}/comments",
+             "--jq", f'[.[] | select(.body | contains("{marker}"))] | first | .id // empty'],
+            capture_output=True, text=True, encoding="utf-8", timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return int(result.stdout.strip())
+    except Exception:
+        pass
+    return None
+
+
+def patch_comment(comment_id: int, body: str, repo: str) -> bool:
+    payload = json.dumps({"body": body})
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
+    try:
+        tmp.write(payload)
+        tmp.close()
+        result = subprocess.run(
+            ["gh", "api", f"repos/{repo}/issues/comments/{comment_id}",
+             "--method", "PATCH", "--input", tmp.name],
+            capture_output=True, text=True, encoding="utf-8", timeout=30,
+        )
+        return result.returncode == 0
+    finally:
+        os.unlink(tmp.name)
+
+
 # ── Publicar comentario ───────────────────────────────────────────────────────
 
-def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edit: bool = False, issue_mode: bool = False) -> bool:
+def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edit: bool = False, issue_mode: bool = False, platform: str = "android") -> bool:
     if dry_run:
         mode_label = "EDITAR último" if edit else "CREAR nuevo"
         target = f"issue #{pr_number}" if issue_mode else f"PR #{pr_number}"
@@ -259,30 +302,29 @@ def post_comment(pr_number: int, body: str, repo: str | None, dry_run: bool, edi
         print("────────────────────────────────────────────")
         return True
 
-    if issue_mode:
-        base_cmd = ["gh", "issue", "comment", str(pr_number), "--body", body]
-    else:
-        base_cmd = ["gh", "pr", "comment", str(pr_number), "--body", body]
-    if repo:
-        base_cmd += ["--repo", repo]
-
     target_label = f"issue #{pr_number}" if issue_mode else f"PR #{pr_number}"
     try:
-        if edit and not issue_mode:
-            # gh issue comment no soporta --edit-last — solo aplica en PRs
-            edit_result = subprocess.run(
-                base_cmd + ["--edit-last"], capture_output=True, text=True,
-                encoding="utf-8", timeout=30
-            )
-            if edit_result.returncode == 0:
-                print(f"✅ Comentario actualizado en {target_label}")
-                return True
-            print("ℹ️  Sin comentario previo del bot, creando uno nuevo...")
+        # Buscar comentario existente de esta plataforma y editarlo
+        if not issue_mode and repo:
+            comment_id = find_platform_comment_id(pr_number, platform, repo)
+            if comment_id:
+                if patch_comment(comment_id, body, repo):
+                    print(f"✅ Comentario {platform.upper()} actualizado en {target_label}")
+                    return True
+                print("ℹ️  patch falló — creando comentario nuevo...")
+
+        # Crear comentario nuevo
+        if issue_mode:
+            base_cmd = ["gh", "issue", "comment", str(pr_number), "--body", body]
+        else:
+            base_cmd = ["gh", "pr", "comment", str(pr_number), "--body", body]
+        if repo:
+            base_cmd += ["--repo", repo]
 
         result = subprocess.run(base_cmd, capture_output=True, text=True,
                                 encoding="utf-8", timeout=30)
         if result.returncode == 0:
-            print(f"✅ Comentario publicado en {target_label}")
+            print(f"✅ Comentario {platform.upper()} publicado en {target_label}")
             return True
         else:
             print(f"⚠️  gh falló (exit {result.returncode}): {result.stderr.strip()}")
@@ -340,7 +382,7 @@ def main():
 
     comment = build_comment(agent1, agent2, args.run_id, agent3,
                             run_url=args.run_url, platform=args.platform, device=args.device)
-    post_comment(args.pr, comment, args.repo, args.dry_run, args.edit, issue_mode=args.issue)
+    post_comment(args.pr, comment, args.repo, args.dry_run, args.edit, issue_mode=args.issue, platform=args.platform)
 
     # DEC-06: no bloquear el pipeline si gh falla
     sys.exit(0)
