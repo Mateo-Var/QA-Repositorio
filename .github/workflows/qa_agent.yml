@@ -104,7 +104,7 @@ jobs:
         run: |
           export PATH="/opt/homebrew/bin:$PATH"
           export APPIUM_HOME="$HOME/.appium"
-          python -m pip install -r requirements.txt --quiet
+          python3 -m pip install -r requirements.txt --quiet
           if [[ -n "$BASE_SHA" ]]; then
             # PR — flujo completo: Agente 1 + Agente 2 + Agente 3 + tests
             bash scripts/run_on_pr.sh "$PR_NUMBER" "$BASE_SHA" "$HEAD_SHA"
@@ -131,6 +131,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -149,6 +151,7 @@ jobs:
           IOS_BUNDLE_ID:         ${{ secrets.IOS_BUNDLE_ID || 'com.tvn-2.appletv' }}
           IOS_TEAM_ID:           ${{ secrets.IOS_TEAM_ID || '8KW4872JND' }}
           IOS_APPIUM_SERVER_URL: http://localhost:4724
+          ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
           GITHUB_SERVER_URL:     ${{ github.server_url }}
           GITHUB_REPOSITORY:     ${{ github.repository }}
@@ -156,14 +159,16 @@ jobs:
         run: |
           export PATH="/opt/homebrew/bin:$PATH"
           export APPIUM_HOME="$HOME/.appium"
-          # Matar Appium zombie si existe
-          lsof -ti :4724 | xargs kill -9 2>/dev/null || true
-          sleep 2
-          # Iniciar Appium iOS en background
-          APPIUM_HOME=~/.appium appium --port 4724 --relaxed-security &
-          sleep 8
-          # Correr suite iOS
-          APP_PLATFORM=ios APP_ID=tvnPass npm run test:android
+          python3 -m pip install -r requirements.txt --quiet
+          if [[ -n "${{ github.event.pull_request.base.sha }}" ]]; then
+            bash scripts/run_on_pr.sh \
+              "${{ github.event.pull_request.number }}" \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}" \
+              ios
+          else
+            APP_PLATFORM=ios bash scripts/run_ios.sh "0"
+          fi
 
       - name: Upload iOS reports
         if: always()
