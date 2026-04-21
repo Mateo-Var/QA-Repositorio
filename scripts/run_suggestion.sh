@@ -67,11 +67,12 @@ echo '{"mode":"suggestion","dod_status":"skipped","suggestions_only":true}' > "$
 
 # ── 4. Publicar sugerencias en el PR ─────────────────────────────────────────
 echo "--- Publicando sugerencias en PR #${PR_NUMBER}..."
-python scripts/post_pr_comment.py \
+python3 scripts/post_pr_comment.py \
   --pr "${PR_NUMBER}" \
   --agent1 "$AGENT1_OUTPUT" \
   --agent2 "$AGENT2_OUTPUT" \
   --run-id "${RUN_ID}" \
+  --platform android \
   || echo "⚠️  No se pudo publicar el comentario — continuando"
 
 # ── Limpieza ──────────────────────────────────────────────────────────────────
