@@ -11,12 +11,13 @@ PR_NUMBER="${1:?PR_NUMBER requerido}"
 BASE_SHA="${2:?BASE_SHA requerido}"
 HEAD_SHA="${3:?HEAD_SHA requerido}"
 PLATFORM="${4:-${APP_PLATFORM:-android}}"
+PLATFORM_UPPER=$(echo "$PLATFORM" | tr '[:lower:]' '[:upper:]')
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RUN_ID="${PLATFORM}_pr${PR_NUMBER}_$(date -u +%Y%m%d_%H%M%S)"
 
-echo "=== QA Agent ${PLATFORM^^} — PR #${PR_NUMBER} ==="
+echo "=== QA Agent ${PLATFORM_UPPER} — PR #${PR_NUMBER} ==="
 echo "Base: ${BASE_SHA} → Head: ${HEAD_SHA}"
 echo "Run ID: ${RUN_ID}"
 
@@ -62,7 +63,7 @@ if [ "$RELEVANT" = false ]; then
   exit 0
 fi
 
-echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA ${PLATFORM^^}..."
+echo "--- Pre-filtro: cambios relevantes detectados. Iniciando QA ${PLATFORM_UPPER}..."
 
 # ── Directorio temporal local (compatible Windows Python + Git Bash) ──────────
 # Usar rutas relativas desde ROOT evita el problema de /tmp/ en Windows Python
@@ -169,7 +170,7 @@ fi
 # ── 4. Ejecutar Agente 2 (Generador/Ejecutor) ────────────────────────────────
 # Nota: la guardia "no hay .test.js" vive en execute_tests() de
 # generator_executor.py — más fiable que manipular el JSON desde bash.
-echo "--- Agente 2: Ejecutando suite ${PLATFORM^^}..."
+echo "--- Agente 2: Ejecutando suite ${PLATFORM_UPPER}..."
 python3 agents/generator_executor.py "$AGENT1_OUTPUT" > "$AGENT2_OUTPUT"
 echo "Agente 2 completado."
 
@@ -277,4 +278,4 @@ fi
 # ── Limpiar archivos temporales ───────────────────────────────────────────────
 rm -rf "$TMP_DIR"
 
-echo "=== Run ${PLATFORM^^} completado exitosamente ==="
+echo "=== Run ${PLATFORM_UPPER} completado exitosamente ==="
