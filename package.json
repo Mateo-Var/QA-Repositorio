@@ -6,6 +6,7 @@
   "scripts": {
     "test:unit": "jest",
     "test:android": "wdio run tests/wdio.conf.js",
+    "test:ios": "APP_PLATFORM=ios wdio run tests/wdio.conf.js",
     "test": "npm run test:unit && npm run test:android"
   },
   "dependencies": {

@@ -1,10 +1,10 @@
 """
-Agente 2 — Generador / Ejecutor Android
+Agente 2 — Generador / Ejecutor (Android + iOS)
 
 Responsabilidad:
 - Consume el JSON producido por el Agente 1.
 - Modo 'generate': genera tests E2E en JavaScript (WebdriverIO + Mocha).
-- Modo 'execute': ejecuta npm run test:android y reporta resultados.
+- Modo 'execute': ejecuta npm run test:{platform} y reporta resultados.
 - Nunca actúa sin input del Agente 1.
 - Devuelve siempre JSON validado, nunca texto libre.
 """
@@ -33,9 +33,10 @@ def tests_root() -> Path:
     return ROOT / "tests"
 
 
-def e2e_dir(app_id: str) -> Path:
-    """Directorio de tests E2E por app."""
-    return app_dir(app_id) / "tests" / "e2e"
+def e2e_dir(app_id: str, platform: str = "android") -> Path:
+    """Directorio de tests E2E por app. iOS usa subdirectorio ios/."""
+    base = app_dir(app_id) / "tests" / "e2e"
+    return base / "ios" if platform == "ios" else base
 
 
 def helpers_dir() -> Path:
@@ -47,8 +48,8 @@ def load_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8")
 
 
-def list_existing_tests(app_id: str) -> list[str]:
-    d = e2e_dir(app_id)
+def list_existing_tests(app_id: str, platform: str = "android") -> list[str]:
+    d = e2e_dir(app_id, platform)
     return [p.name for p in d.glob("*.test.js")] if d.exists() else []
 
 
@@ -70,14 +71,15 @@ def _resolve_request(input_json: dict, key: str, decision_key: str) -> dict:
 
 def generate_tests(input_json: dict) -> dict:
     """Llama a Claude para generar archivos de test E2E en JavaScript."""
-    app_id    = input_json["app_id"]
-    tests_dir = e2e_dir(app_id)
+    app_id   = input_json["app_id"]
+    platform = (input_json.get("platform") or os.environ.get("APP_PLATFORM", "android")).lower()
+    tests_dir = e2e_dir(app_id, platform)
     client    = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
     gen_request = _resolve_request(input_json, "generate_request", "generate")
 
     # Cargar UI map — fuente de verdad para selectores reales
-    ui_map_path = app_dir(app_id) / "ui_map_android.json"
+    ui_map_path = app_dir(app_id) / f"ui_map_{platform}.json"
     ui_map = json.loads(ui_map_path.read_text(encoding="utf-8", errors="replace")) if ui_map_path.exists() else {}
 
     # Cargar app_context — fuente de verdad para prioridades de negocio
@@ -86,10 +88,10 @@ def generate_tests(input_json: dict) -> dict:
 
     context = {
         "mode":              "generate",
-        "platform":          "android",
+        "platform":          platform,
         "app_id":            app_id,
         "request":           gen_request,
-        "existing_tests":    list_existing_tests(app_id),
+        "existing_tests":    list_existing_tests(app_id, platform),
         "existing_helpers":  list_existing_helpers(),
         "agent_context":     input_json.get("context", {}),
         "ui_map":            ui_map,
@@ -146,24 +148,29 @@ def generate_tests(input_json: dict) -> dict:
 
 
 def execute_tests(input_json: dict) -> dict:
-    """Ejecuta npm run test:android y reporta resultados."""
+    """Ejecuta npm run test:{platform} y reporta resultados."""
     app_id       = input_json["app_id"]
+    platform     = (input_json.get("platform") or os.environ.get("APP_PLATFORM", "android")).lower()
     exec_request = _resolve_request(input_json, "execute_request", "execute")
     dod_tests    = exec_request.get("dod_tests", [])
 
     # Prioridad: variable de entorno del runner > sugerencia de Agent 1.
-    # Agent 1 puede sugerir el serial USB (R5CTB1W92KY) pero en CI
-    # ANDROID_DEVICE_NAME siempre tiene la IP WiFi correcta.
-    device = os.environ.get("ANDROID_DEVICE_NAME") or exec_request.get("device", "R5CTB1W92KY")
+    if platform == "ios":
+        device = os.environ.get("IOS_DEVICE_UDID") or exec_request.get("device", "00008140-00045DCE3422801C")
+    else:
+        # Agent 1 puede sugerir el serial USB (R5CTB1W92KY) pero en CI
+        # ANDROID_DEVICE_NAME siempre tiene la IP WiFi correcta.
+        device = os.environ.get("ANDROID_DEVICE_NAME") or exec_request.get("device", "R5CTB1W92KY")
 
     # Guardia: si no hay .test.js, generar antes de ejecutar.
     # Evita "No specs found" cuando Agent 1 elige execute pero los tests
     # aún no existen en el repo (primer run después de borrar los tests).
-    spec_dir = e2e_dir(app_id)
+    spec_dir = e2e_dir(app_id, platform)
     if not spec_dir.exists() or not list(spec_dir.glob("*.test.js")):
         print(f"[guardia] No hay .test.js en {spec_dir} — generando tests primero...", file=sys.stderr)
         gen_input = {
-            "app_id": app_id,
+            "app_id":   app_id,
+            "platform": platform,
             "generate_request": input_json.get("generate_request") or {
                 "flow": "dod_flows",
                 "scenarios": ["login_email", "reproductor_live", "logout", "busqueda"],
@@ -177,23 +184,31 @@ def execute_tests(input_json: dict) -> dict:
     reports_dir = ROOT / "reports" / app_id / "runs"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
-    android_path = ROOT  # package.json está en root, no en tests/
-    env = {
-        **os.environ,
-        "ANDROID_DEVICE_NAME":   device,
-        "QA_RUN_ID":             run_id,
-        "ANDROID_APP_PACKAGE":   os.environ.get("ANDROID_APP_PACKAGE", "com.streann.tvnpass").strip(),
-        "ANDROID_APP_ACTIVITY":  os.environ.get("ANDROID_APP_ACTIVITY", "com.streann.tvnpass.MainActivity").strip(),
-    }
+    if platform == "ios":
+        env = {
+            **os.environ,
+            "APP_PLATFORM":   "ios",
+            "QA_RUN_ID":      run_id,
+            "IOS_DEVICE_UDID": device,
+            "IOS_BUNDLE_ID":  os.environ.get("IOS_BUNDLE_ID", "com.tvn-2.appletv").strip(),
+        }
+    else:
+        env = {
+            **os.environ,
+            "ANDROID_DEVICE_NAME":   device,
+            "QA_RUN_ID":             run_id,
+            "ANDROID_APP_PACKAGE":   os.environ.get("ANDROID_APP_PACKAGE", "com.streann.tvnpass").strip(),
+            "ANDROID_APP_ACTIVITY":  os.environ.get("ANDROID_APP_ACTIVITY", "com.streann.tvnpass.MainActivity").strip(),
+        }
 
     proc = subprocess.run(
-        "npm run test:android",
+        f"npm run test:{platform}",
         shell=True,
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
-        cwd=android_path,
+        cwd=ROOT,
         env=env,
     )
 
@@ -218,6 +233,7 @@ def execute_tests(input_json: dict) -> dict:
 
     return {
         "mode":             "execute",
+        "platform":         platform,
         "run_id":           run_id,
         "dod_status":       dod_status,
         "dod_failures":     dod_failures,
@@ -233,6 +249,7 @@ def execute_tests(input_json: dict) -> dict:
 
 
 def run(input_json: dict) -> dict:
+    platform = (input_json.get("platform") or os.environ.get("APP_PLATFORM", "android")).lower()
     mode = input_json.get("mode")
     if mode == "generate":
         result = generate_tests(input_json)
@@ -243,7 +260,7 @@ def run(input_json: dict) -> dict:
 
     result["_meta"] = {
         "agent":     "generator_executor",
-        "platform":  "android",
+        "platform":  platform,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "mode":      mode,
     }
