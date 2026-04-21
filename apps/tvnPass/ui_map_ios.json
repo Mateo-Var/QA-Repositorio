@@ -1,0 +1,174 @@
+{
+  "app_id": "tvnPass",
+  "bundle_id": "com.tvn-2.appletv",
+  "explored_at": "2026-04-21T16:07:07.236241+00:00",
+  "version": "1.0.0",
+  "screens": {
+    "app_launch": {
+      "trigger": "app_launch",
+      "depth": 0,
+      "elements": [
+        {
+          "type": "Button",
+          "name": "Inicio",
+          "label": "Inicio",
+          "value": "1"
+        },
+        {
+          "type": "Button",
+          "name": "Explorar",
+          "label": "Explorar",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Menú",
+          "label": "Menú",
+          "value": ""
+        }
+      ]
+    },
+    "version_a24.0.9-c5.2.10_m-1.0.532": {
+      "trigger": "tap:Explorar",
+      "depth": 1,
+      "elements": [
+        {
+          "type": "Button",
+          "name": "Inicio",
+          "label": "Inicio",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Explorar",
+          "label": "Explorar",
+          "value": "1"
+        },
+        {
+          "type": "Button",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Menú",
+          "label": "Menú",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "VERSION A24.0.9-C5.2.10 M-1.0.532",
+          "label": "VERSION A24.0.9-C5.2.10 M-1.0.532",
+          "value": "VERSION A24.0.9-C5.2.10 M-1.0.532"
+        },
+        {
+          "type": "StaticText",
+          "name": "EXPLORAR CONTENIDO",
+          "label": "EXPLORAR CONTENIDO",
+          "value": "EXPLORAR CONTENIDO"
+        }
+      ]
+    },
+    "buscar": {
+      "trigger": "tap:Buscar",
+      "depth": 2,
+      "elements": [
+        {
+          "type": "Button",
+          "name": "Inicio",
+          "label": "Inicio",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Explorar",
+          "label": "Explorar",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "1"
+        },
+        {
+          "type": "Button",
+          "name": "Menú",
+          "label": "Menú",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "Ingresa tu búsqueda",
+          "label": "Ingresa tu búsqueda",
+          "value": "Ingresa tu búsqueda"
+        }
+      ]
+    },
+    "menú": {
+      "trigger": "tap:Menú",
+      "depth": 3,
+      "elements": [
+        {
+          "type": "Button",
+          "name": "Inicio",
+          "label": "Inicio",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Explorar",
+          "label": "Explorar",
+          "value": ""
+        },
+        {
+          "type": "Button",
+          "name": "Buscar",
+          "label": "Buscar",
+          "value": "1"
+        },
+        {
+          "type": "Button",
+          "name": "Menú",
+          "label": "Menú",
+          "value": ""
+        },
+        {
+          "type": "StaticText",
+          "name": "Ingresa tu búsqueda",
+          "label": "Ingresa tu búsqueda",
+          "value": "Ingresa tu búsqueda"
+        }
+      ]
+    }
+  },
+  "navigation_graph": {
+    "app_launch": [
+      "explorar"
+    ],
+    "version_a24.0.9-c5.2.10_m-1.0.532": [
+      "buscar"
+    ],
+    "buscar": [
+      "menú"
+    ],
+    "menú": [
+      "menú"
+    ]
+  },
+  "tab_bar": [
+    "Inicio",
+    "Explorar",
+    "Buscar",
+    "Menú"
+  ],
+  "total_screens": 4,
+  "total_elements": 20
+}
