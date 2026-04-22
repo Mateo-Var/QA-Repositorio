@@ -23,6 +23,37 @@ async function _enHomeScreen() {
   }
 }
 
+async function _manejarOnboarding() {
+  // Detecta la pantalla de bienvenida que aparece en instalación limpia.
+  // Flujo: 2 swipes a la derecha → tap en "Ver ahora".
+  try {
+    const verAhora = await $('android=new UiSelector().textContains("Ver ahora")');
+    const tieneOnboarding = await verAhora.isExisting();
+    if (!tieneOnboarding) return;
+
+    console.log('[estado] onboarding detectado — navegando...');
+    const { width, height } = await browser.getWindowSize();
+    const midY = Math.round(height * 0.5);
+
+    for (let i = 0; i < 2; i++) {
+      await browser.action('pointer', { parameters: { pointerType: 'touch' } })
+        .move({ x: Math.round(width * 0.2), y: midY })
+        .down()
+        .move({ x: Math.round(width * 0.8), y: midY, duration: 300 })
+        .up()
+        .perform();
+      await browser.pause(600);
+    }
+
+    const btn = await $('android=new UiSelector().textContains("Ver ahora")');
+    if (await btn.isExisting()) {
+      await btn.click();
+      await browser.pause(2000);
+      console.log('[estado] ✓ onboarding completado');
+    }
+  } catch (_) {}
+}
+
 async function normalizarEstadoApp() {
   let estado = 0;
   try {
@@ -47,6 +78,8 @@ async function normalizarEstadoApp() {
     }
     await browser.pause(3000);
   }
+
+  await _manejarOnboarding();
 
   if (await _enHomeScreen()) {
     console.log('[estado] ✓ ya en home screen');
