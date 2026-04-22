@@ -43,4 +43,18 @@ describe('Modo Offline — tvnPass Android', () => {
     expect(sinConexion).toBe(true);
   });
 
+  it('modo_offline_recupera_al_restaurar_conexion', async () => {
+    // DOD-09: Al volver la red, la app se recupera sin reiniciar
+    await browser.setNetworkConnection(6); // restaurar wifi + data
+    await browser.pause(4000);
+
+    await takeScreenshot('offline_recuperacion', 'happy_path');
+
+    const recuperada =
+      (await pageContains('EN VIVO')) ||
+      (await pageContains('Programación')) ||
+      (await pageContains('Inicio'));
+    expect(recuperada).toBe(true);
+  });
+
 });
