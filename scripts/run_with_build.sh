@@ -6,25 +6,53 @@
 # Este script se corre manualmente cuando la build está lista para testear.
 #
 # Uso:
-#   ./scripts/run_with_build.sh <ruta_al_apk> --pr <numero_pr>
+#   ./scripts/run_with_build.sh [ruta_al_apk] --pr <numero_pr> [--agent1-json <ruta>]
+#   Si no se pasa ruta APK, se usa el más reciente de ~/Downloads.
+#   Si no se pasa --agent1-json, se busca el análisis guardado del PR automáticamente.
 #
 # Ejemplos:
+#   ./scripts/run_with_build.sh --pr 31
 #   ./scripts/run_with_build.sh ~/Downloads/tvnpass-v2.5.0.apk --pr 31
 #   APP_ID=tvnPass ./scripts/run_with_build.sh /tmp/build.apk --pr 31
+#
+# Integración con repo externo (futuro):
+#   El repo de la empresa puede pasar su propio análisis vía --agent1-json:
+#   ./scripts/run_with_build.sh build.apk --pr 31 --agent1-json /tmp/analysis.json
+#   Esto permite que Agent 1 corra en el contexto del repo de la empresa y los
+#   resultados del análisis de código viajen al pipeline QA sin re-analizar aquí.
 
 set -euo pipefail
 
 # ── Args ──────────────────────────────────────────────────────────────────────
-APK_PATH="${1:?Uso: run_with_build.sh <ruta_apk> --pr <numero_pr>}"
-shift
+APK_PATH=""
+if [[ $# -gt 0 && "${1}" != --* ]]; then
+  APK_PATH="${1}"
+  shift
+fi
 
 PR_NUMBER="0"
+EXTERNAL_AGENT1_JSON=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --pr) PR_NUMBER="$2"; shift 2 ;;
-    *)    shift ;;
+    --pr)          PR_NUMBER="$2";          shift 2 ;;
+    --agent1-json) EXTERNAL_AGENT1_JSON="$2"; shift 2 ;;
+    *)             shift ;;
   esac
 done
+
+# Auto-detectar el APK más reciente de ~/Downloads si no se especificó ruta
+if [[ -z "$APK_PATH" ]]; then
+  DOWNLOADS_DIR="${HOME}/Downloads"
+  _APP_PKG="${ANDROID_APP_PACKAGE:-com.streann.tvnpass}"
+  # El APK empieza con el package completo: com.empresa.app-version-build.apk
+  APK_PATH=$(ls -t "${DOWNLOADS_DIR}/${_APP_PKG}"*.apk 2>/dev/null | head -1 || true)
+  if [[ -z "$APK_PATH" ]]; then
+    echo "ERROR: No se encontró APK de ${_APP_PKG} en ${DOWNLOADS_DIR}"
+    echo "Uso: ./scripts/run_with_build.sh [ruta_apk] --pr <numero_pr>"
+    exit 1
+  fi
+  echo "   Auto-detectado: $(basename "$APK_PATH")"
+fi
 
 # ── Config ────────────────────────────────────────────────────────────────────
 APP_ID="${APP_ID:-tvnPass}"
@@ -81,35 +109,57 @@ sleep 3
 TMP_DIR=".qa_tmp/${RUN_ID}"
 mkdir -p "$TMP_DIR"
 
-AGENT1_PLACEHOLDER="${TMP_DIR}/agent1_build.json"
-AGENT2_INPUT="${TMP_DIR}/agent2_input.json"
+AGENT1_FILE="${TMP_DIR}/agent1_build.json"
 AGENT2_OUTPUT="${TMP_DIR}/agent2_output.json"
 AGENT3_INPUT="${TMP_DIR}/agent3_input.json"
 AGENT3_OUTPUT="${TMP_DIR}/agent3_output.json"
 
-# Placeholder Agent 1 — Fase 0 ya corrió en el PR, aquí solo necesitamos
-# los campos mínimos para que post_pr_comment.py pueda armar el comentario
-cat > "$AGENT1_PLACEHOLDER" <<EOF
+# ── Resolver Agent 1: externo > guardado del PR > placeholder ─────────────────
+# Prioridad:
+#   1. --agent1-json <ruta>  → viene del repo externo de la empresa
+#   2. reports/.../pr{N}_agent1.json → guardado por run_on_pr.sh en Fase 0
+#   3. placeholder mínimo   → fallback si el PR no corrió Fase 0 todavía
+AGENT1_PERSIST="reports/${APP_ID}/runs/pr${PR_NUMBER}_agent1.json"
+
+if [[ -n "$EXTERNAL_AGENT1_JSON" && -f "$EXTERNAL_AGENT1_JSON" ]]; then
+  echo "   Usando análisis externo: ${EXTERNAL_AGENT1_JSON}"
+  cp "$EXTERNAL_AGENT1_JSON" "$AGENT1_FILE"
+elif [[ "${PR_NUMBER}" != "0" && -f "$AGENT1_PERSIST" ]]; then
+  echo "   Reutilizando análisis de Fase 0 (PR #${PR_NUMBER})..."
+  cp "$AGENT1_PERSIST" "$AGENT1_FILE"
+else
+  echo "   Sin análisis previo — usando placeholder (suite DOD completa)"
+  cat > "$AGENT1_FILE" <<EOF
 {
   "app_id":     "${APP_ID}",
+  "platform":   "android",
   "risk_level": "INFO",
   "reason":     "Build \`${APK_NAME}\` instalada desde Slack — ejecutando suite completa.",
-  "suggestions": []
-}
-EOF
-
-# Input para Agent 2 — modo execute directo, sin pasar por Agent 1
-cat > "$AGENT2_INPUT" <<EOF
-{
-  "mode":     "execute",
-  "platform": "android",
-  "app_id":   "${APP_ID}",
+  "suggestions": [],
   "execute_request": {
     "dod_tests": ["DOD-01", "DOD-02", "DOD-03", "DOD-04", "DOD-05", "DOD-08"],
     "device":    "${DEVICE}"
   }
 }
 EOF
+fi
+
+# Asegurar mode=execute en Agent 1 para que Agent 2 siempre ejecute (no genere)
+python3 - "$AGENT1_FILE" "${DEVICE}" <<'PYEOF'
+import json, sys
+path, device = sys.argv[1], sys.argv[2]
+data = json.load(open(path, encoding="utf-8"))
+data["mode"] = "execute"
+if "execute_request" not in data:
+    data["execute_request"] = {
+        "dod_tests": ["DOD-01", "DOD-02", "DOD-03", "DOD-04", "DOD-05", "DOD-08"],
+        "device": device,
+    }
+elif "device" not in data.get("execute_request", {}):
+    data["execute_request"]["device"] = device
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+PYEOF
 
 # ── 2. Verificar / iniciar Appium ─────────────────────────────────────────────
 echo ""
@@ -156,7 +206,7 @@ json.dump({"mode": "running", "platform": "android", "dod_status": "running"}, o
 PYEOF
   python3 scripts/post_pr_comment.py \
     --pr  "${PR_NUMBER}" \
-    --agent1 "$AGENT1_PLACEHOLDER" \
+    --agent1 "$AGENT1_FILE" \
     --agent2 "${TMP_DIR}/agent2_running.json" \
     --run-id "${RUN_ID}" \
     --run-url "${RUN_URL}" \
@@ -170,7 +220,7 @@ fi
 # ── 4. Fase 2 — Ejecutar Agent 2 (tests E2E) ─────────────────────────────────
 echo ""
 echo "--- [Fase 2c] Ejecutando suite E2E Android..."
-python3 agents/generator_executor.py "$AGENT2_INPUT" > "$AGENT2_OUTPUT"
+python3 agents/generator_executor.py "$AGENT1_FILE" > "$AGENT2_OUTPUT"
 echo "--- Fase 2 completada."
 
 # ── 5. Comprimir contexto ─────────────────────────────────────────────────────
@@ -203,7 +253,7 @@ echo "--- [Fase 4] Publicando resultados en PR #${PR_NUMBER}..."
 if [[ "${PR_NUMBER}" != "0" ]]; then
   python3 scripts/post_pr_comment.py \
     --pr      "${PR_NUMBER}" \
-    --agent1  "$AGENT1_PLACEHOLDER" \
+    --agent1  "$AGENT1_FILE" \
     --agent2  "$AGENT2_OUTPUT" \
     --agent3  "$AGENT3_OUTPUT" \
     --run-id  "${RUN_ID}" \
@@ -215,7 +265,7 @@ if [[ "${PR_NUMBER}" != "0" ]]; then
 else
   echo "   PR_NUMBER=0 — resultados solo en consola"
   python3 scripts/post_pr_comment.py \
-    --pr 1 --agent1 "$AGENT1_PLACEHOLDER" --agent2 "$AGENT2_OUTPUT" \
+    --pr 1 --agent1 "$AGENT1_FILE" --agent2 "$AGENT2_OUTPUT" \
     --run-id "${RUN_ID}" --platform android --device "${DEVICE}" --dry-run
 fi
 
