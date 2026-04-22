@@ -166,10 +166,19 @@ if [ "$PLATFORM" = "android" ]; then
       sleep 2
     fi
 
-    # Verificar que el dispositivo responde antes de intentar instalar
+    # Verificar que el dispositivo configurado responde; si no, usar el primero disponible
     DEVICE_OK=$(adb -s "${DEVICE_SERIAL}" get-state 2>/dev/null || true)
     if [[ "$DEVICE_OK" != "device" ]]; then
-      echo "   ADVERTENCIA: dispositivo no disponible (${DEVICE_SERIAL}) — saltando instalación"
+      FALLBACK=$(adb devices 2>/dev/null | awk '/\tdevice$/{print $1; exit}')
+      if [[ -n "$FALLBACK" ]]; then
+        echo "   Dispositivo ${DEVICE_SERIAL} no responde — usando ${FALLBACK}"
+        DEVICE_SERIAL="$FALLBACK"
+        DEVICE_OK="device"
+      fi
+    fi
+
+    if [[ "$DEVICE_OK" != "device" ]]; then
+      echo "   ADVERTENCIA: ningún dispositivo ADB disponible — saltando instalación"
     else
       INSTALLED=$(adb -s "${DEVICE_SERIAL}" shell pm list packages 2>/dev/null \
         | grep "^package:${APP_PKG}$" || true)
