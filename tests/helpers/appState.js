@@ -24,32 +24,56 @@ async function _enHomeScreen() {
 }
 
 async function _manejarOnboarding() {
-  // Detecta la pantalla de bienvenida que aparece en instalación limpia.
-  // Flujo: 2 swipes a la derecha → tap en "Ver ahora".
-  try {
-    const verAhora = await $('android=new UiSelector().textContains("Ver ahora")');
-    const tieneOnboarding = await verAhora.isExisting();
-    if (!tieneOnboarding) return;
+  // Flujo post-instalación limpia:
+  // 1. Permiso de notificaciones → "Permitir"
+  // 2. Carrusel de bienvenida → 2 swipes derecha→izquierda
+  // 3. Botón "VER AHORA" en la última pantalla
 
-    console.log('[estado] onboarding detectado — navegando...');
+  try {
+    // Paso 1 — permiso de notificaciones (diálogo del sistema Android)
+    await browser.pause(1500);
+    const permitir = await $('android=new UiSelector().textContains("Permitir")');
+    if (await permitir.isExisting()) {
+      await permitir.click();
+      console.log('[onboarding] ✓ permiso notificaciones aceptado');
+      await browser.pause(1000);
+    }
+  } catch (_) {}
+
+  try {
+    // Detectar si hay carrusel — busca "VER AHORA" que aparece en la última slide
+    // Si no está visible aún, igual intentamos los swipes y luego buscamos el botón
     const { width, height } = await browser.getWindowSize();
     const midY = Math.round(height * 0.5);
+    const startX = Math.round(width * 0.8); // derecha
+    const endX   = Math.round(width * 0.2); // izquierda → avanza al siguiente slide
 
-    for (let i = 0; i < 2; i++) {
-      await browser.action('pointer', { parameters: { pointerType: 'touch' } })
-        .move({ x: Math.round(width * 0.2), y: midY })
-        .down()
-        .move({ x: Math.round(width * 0.8), y: midY, duration: 300 })
-        .up()
-        .perform();
-      await browser.pause(600);
+    // Verificar si estamos en el carrusel buscando "VER AHORA" o ausencia de home
+    const enHome = await _enHomeScreen();
+    if (enHome) return;
+
+    const verAhora = await $('android=new UiSelector().text("VER AHORA")');
+    const yaEnUltima = await verAhora.isExisting();
+
+    if (!yaEnUltima) {
+      console.log('[onboarding] carrusel detectado — deslizando slides...');
+      for (let i = 0; i < 2; i++) {
+        await browser.action('pointer', { parameters: { pointerType: 'touch' } })
+          .move({ x: startX, y: midY })
+          .down()
+          .move({ x: endX, y: midY, duration: 400 })
+          .up()
+          .perform();
+        await browser.pause(800);
+      }
     }
 
-    const btn = await $('android=new UiSelector().textContains("Ver ahora")');
+    // Tap en "VER AHORA"
+    const btn = await $('android=new UiSelector().text("VER AHORA")');
     if (await btn.isExisting()) {
       await btn.click();
-      await browser.pause(2000);
-      console.log('[estado] ✓ onboarding completado');
+      await browser.pause(2500);
+      console.log('[onboarding] ✓ onboarding completado');
     }
   } catch (_) {}
 }
