@@ -171,7 +171,7 @@ if [ "$PLATFORM" = "android" ]; then
     sleep 3
   else
     echo ""
-    echo "--- [APK] Sin APK de ${PKG_FRAGMENT} en Downloads — usando versión instalada en dispositivo"
+    echo "--- [APK] Sin APK de ${APP_PKG} en Downloads — usando versión instalada en dispositivo"
   fi
 fi
 
