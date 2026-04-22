@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.12"
+VERSION = "3.1.0"
 
 CHANGELOG = [
     {
@@ -298,13 +298,19 @@ CHANGELOG = [
         "author": "santi",
         "changes": "Fix: borrar cache Node.js corrompido tras mover runner.",
     },
+    {
+        "version": "3.1.0",
+        "date": "2026-04-22",
+        "author": "santi",
+        "changes": "DOD-03 timeout 12s → 15s — red corporativa agrega latencia extra al buffer inicial del reproductor.",
+    },
 ]
 
 # ── Timeouts por DOD ID (segundos) ────────────────────────────────────────────
 DOD_TIMEOUTS = {
     "DOD-01": 5,    # Login email → home screen
     "DOD-02": 6,    # Login SSO → home screen
-    "DOD-03": 12,   # Buffer inicial de video (físico necesita más margen que simulador)
+    "DOD-03": 15,   # Buffer inicial de video — aumentado a 15s por latencia en red corporativa
     "DOD-04": 3,    # Resultados de búsqueda (tab Buscar + query + red)
     "DOD-05": 3,    # Selector de perfiles cargado
     "DOD-06": 60,   # Onboarding completo
