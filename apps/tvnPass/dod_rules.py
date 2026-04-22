@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 
 CHANGELOG = [
     {
@@ -303,6 +303,12 @@ CHANGELOG = [
         "date": "2026-04-22",
         "author": "santi",
         "changes": "DOD-03 timeout 12s → 15s — red corporativa agrega latencia extra al buffer inicial del reproductor.",
+    },
+    {
+        "version": "3.1.1",
+        "date": "2026-04-22",
+        "author": "santi",
+        "changes": "Trigger CI — validar flujo completo APK install + onboarding + E2E.",
     },
 ]
 
