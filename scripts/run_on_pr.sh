@@ -157,18 +157,41 @@ if [ "$PLATFORM" = "android" ]; then
     APK_BASENAME=$(basename "$APK_FOUND")
     echo ""
     echo "--- [APK] Detectado en Downloads: ${APK_BASENAME}"
-    DEVICE_SERIAL="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
-    INSTALLED=$(adb -s "${DEVICE_SERIAL}" shell pm list packages 2>/dev/null \
-      | grep "^package:${APP_PKG}$" || true)
-    if [[ -n "$INSTALLED" ]]; then
-      echo "   Desinstalando versión anterior..."
-      adb -s "${DEVICE_SERIAL}" uninstall "${APP_PKG}" > /dev/null
-      echo "   ✓ Versión anterior eliminada"
+    DEVICE_SERIAL=$(echo "${ANDROID_DEVICE_NAME:-R5CTB1W92KY}" | tr -d '[:space:]')
+
+    # WiFi ADB requiere conectar explícitamente antes de cualquier comando adb
+    if [[ "$DEVICE_SERIAL" == *":"* ]]; then
+      echo "   Conectando ADB WiFi a ${DEVICE_SERIAL}..."
+      adb connect "${DEVICE_SERIAL}" 2>/dev/null || true
+      sleep 2
     fi
-    echo "   Instalando ${APK_BASENAME}..."
-    adb -s "${DEVICE_SERIAL}" install -r "$APK_FOUND"
-    echo "   ✓ APK instalado correctamente"
-    sleep 3
+
+    # Verificar que el dispositivo configurado responde; si no, usar el primero disponible
+    DEVICE_OK=$(adb -s "${DEVICE_SERIAL}" get-state 2>/dev/null || true)
+    if [[ "$DEVICE_OK" != "device" ]]; then
+      FALLBACK=$(adb devices 2>/dev/null | awk '/\tdevice$/{print $1; exit}')
+      if [[ -n "$FALLBACK" ]]; then
+        echo "   Dispositivo ${DEVICE_SERIAL} no responde — usando ${FALLBACK}"
+        DEVICE_SERIAL="$FALLBACK"
+        DEVICE_OK="device"
+      fi
+    fi
+
+    if [[ "$DEVICE_OK" != "device" ]]; then
+      echo "   ADVERTENCIA: ningún dispositivo ADB disponible — saltando instalación"
+    else
+      INSTALLED=$(adb -s "${DEVICE_SERIAL}" shell pm list packages 2>/dev/null \
+        | grep "^package:${APP_PKG}$" || true)
+      if [[ -n "$INSTALLED" ]]; then
+        echo "   Desinstalando versión anterior..."
+        adb -s "${DEVICE_SERIAL}" uninstall "${APP_PKG}" > /dev/null
+        echo "   ✓ Versión anterior eliminada"
+      fi
+      echo "   Instalando ${APK_BASENAME}..."
+      adb -s "${DEVICE_SERIAL}" install -r "$APK_FOUND"
+      echo "   ✓ APK instalado correctamente"
+      sleep 3
+    fi
   else
     echo ""
     echo "--- [APK] Sin APK de ${APP_PKG} en Downloads — usando versión instalada en dispositivo"
