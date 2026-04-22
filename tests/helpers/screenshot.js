@@ -16,8 +16,12 @@ async function takeScreenshot(name, type = 'happy_path') {
   const dir       = screenshotDir(type);
   fs.mkdirSync(dir, { recursive: true });
   const filepath  = path.join(dir, filename);
-  await browser.saveScreenshot(filepath);
-  console.log(`[screenshot] guardado: ${filepath}`);
+  try {
+    await browser.saveScreenshot(filepath);
+    console.log(`[screenshot] guardado: ${filepath}`);
+  } catch (e) {
+    console.warn(`[screenshot] no se pudo guardar ${filepath}: ${e.message}`);
+  }
   return filepath;
 }
 

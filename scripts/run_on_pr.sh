@@ -108,6 +108,17 @@ with open(path, "w", encoding="utf-8") as f:
 PYEOF
 echo "Agente 1 completado."
 
+# Persistir output Agent 1 → run_with_build.sh lo reutiliza cuando llega la APK
+# Esto evita re-analizar el diff y permite tests dirigidos basados en los cambios reales.
+# Para repo externo: este archivo puede generarse desde el repo de la empresa pasando
+# --agent1-json a run_with_build.sh en lugar de depender de este script.
+if [[ "${PR_NUMBER}" != "0" ]]; then
+  AGENT1_PERSIST="reports/${APP_ID:-tvnPass}/runs/pr${PR_NUMBER}_agent1.json"
+  mkdir -p "reports/${APP_ID:-tvnPass}/runs"
+  cp "$AGENT1_OUTPUT" "$AGENT1_PERSIST"
+  echo "   Agent 1 persistido: ${AGENT1_PERSIST}"
+fi
+
 # ── 3b. Comentario inicial (iOS no tiene suggest job propio) ─────────────────
 # Android: el suggest job (ubuntu) ya posteó el comentario inicial con el marcador.
 # iOS: no hay suggest job → se postea aquí con Agent 1 + estado "running".
@@ -127,6 +138,41 @@ PYEOF
     --platform ios \
     --device "iPhone 16e" \
     || true
+fi
+
+# ── 3c. Detectar e instalar APK desde ~/Downloads (Android únicamente) ───────
+# Busca el APK más reciente en ~/Downloads cuyo nombre contenga el paquete de la app.
+# Si lo encuentra: desinstala la versión anterior e instala la nueva build.
+# Si no lo encuentra: continúa con la versión ya instalada en el dispositivo.
+# Esto permite que el QA descargue el APK de Slack y el siguiente run lo instale
+# automáticamente sin intervención extra.
+if [ "$PLATFORM" = "android" ]; then
+  DOWNLOADS_DIR="${HOME}/Downloads"
+  APP_PKG="${ANDROID_APP_PACKAGE:-com.streann.tvnpass}"
+  # El APK siempre empieza con el package completo: com.empresa.app-version-build.apk
+  # Buscar por package exacto evita falsos positivos entre apps del mismo vendor
+  APK_FOUND=$(ls -t "${DOWNLOADS_DIR}/${APP_PKG}"*.apk 2>/dev/null | head -1 || true)
+
+  if [[ -n "$APK_FOUND" ]]; then
+    APK_BASENAME=$(basename "$APK_FOUND")
+    echo ""
+    echo "--- [APK] Detectado en Downloads: ${APK_BASENAME}"
+    DEVICE_SERIAL="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
+    INSTALLED=$(adb -s "${DEVICE_SERIAL}" shell pm list packages 2>/dev/null \
+      | grep "^package:${APP_PKG}$" || true)
+    if [[ -n "$INSTALLED" ]]; then
+      echo "   Desinstalando versión anterior..."
+      adb -s "${DEVICE_SERIAL}" uninstall "${APP_PKG}" > /dev/null
+      echo "   ✓ Versión anterior eliminada"
+    fi
+    echo "   Instalando ${APK_BASENAME}..."
+    adb -s "${DEVICE_SERIAL}" install -r "$APK_FOUND"
+    echo "   ✓ APK instalado correctamente"
+    sleep 3
+  else
+    echo ""
+    echo "--- [APK] Sin APK de ${PKG_FRAGMENT} en Downloads — usando versión instalada en dispositivo"
+  fi
 fi
 
 # ── 4a. Verificar/iniciar Appium (DEC-04) ────────────────────────────────────
