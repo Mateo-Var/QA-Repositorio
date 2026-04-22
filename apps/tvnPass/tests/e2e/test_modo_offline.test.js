@@ -46,7 +46,7 @@ describe('Modo Offline — tvnPass Android', () => {
   it('modo_offline_recupera_al_restaurar_conexion', async () => {
     // DOD-09: Al volver la red, la app se recupera sin reiniciar
     await browser.setNetworkConnection(6); // restaurar wifi + data
-    await browser.pause(4000);
+    await browser.pause(6000); // aumentado a 6s — device físico tarda más en reconectar
 
     await takeScreenshot('offline_recuperacion', 'happy_path');
 
