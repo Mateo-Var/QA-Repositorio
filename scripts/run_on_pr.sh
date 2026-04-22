@@ -148,9 +148,9 @@ fi
 # automáticamente sin intervención extra.
 if [ "$PLATFORM" = "android" ]; then
   DOWNLOADS_DIR="${HOME}/Downloads"
-  APP_PKG="${ANDROID_APP_PACKAGE:-com.streann.tvnpass}"
+  # tr -d elimina \n o espacios que el secret puede agregar al expandirse en bash
+  APP_PKG=$(echo "${ANDROID_APP_PACKAGE:-com.streann.tvnpass}" | tr -d '[:space:]')
   # El APK siempre empieza con el package completo: com.empresa.app-version-build.apk
-  # Buscar por package exacto evita falsos positivos entre apps del mismo vendor
   APK_FOUND=$(ls -t "${DOWNLOADS_DIR}/${APP_PKG}"*.apk 2>/dev/null | head -1 || true)
 
   if [[ -n "$APK_FOUND" ]]; then
@@ -190,7 +190,7 @@ else
   APPIUM_URL="${APPIUM_SERVER_URL:-http://localhost:4723}"
 fi
 APPIUM_PORT="${APPIUM_URL##*:}"
-APPIUM_PORT="${APPIUM_PORT%%/*}"
+APPIUM_PORT=$(echo "${APPIUM_PORT%%/*}" | tr -d '[:space:]')
 
 # Python TCP check — más fiable que curl en git-bash Windows
 # (curl puede fallar por resolución IPv6 de localhost u otros quirks de Windows)
