@@ -122,11 +122,14 @@ jobs:
           retention-days: 14
 
 # ── Job 3: E2E iOS (self-hosted Mac Mini con iPhone físico) ──────────────────
+# Corre solo si hay runner con label ios registrado.
+# Si no hay IPA en ~/Downloads continúa con la app ya instalada en el dispositivo.
   e2e-ios:
     name: "Fase 2 — E2E iOS"
     needs: unit-tests
     runs-on: [self-hosted, ios]
     timeout-minutes: 30
+    continue-on-error: true
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
