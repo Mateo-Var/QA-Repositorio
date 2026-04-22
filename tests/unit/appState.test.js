@@ -16,8 +16,15 @@ function makeBrowser({ estado = 4 } = {}) {
       if (cmd === 'mobile: queryAppState') return estado;
       return undefined;
     }),
-    activateApp: jest.fn().mockResolvedValue(undefined),
-    pause:       jest.fn().mockResolvedValue(undefined),
+    activateApp:   jest.fn().mockResolvedValue(undefined),
+    pause:         jest.fn().mockResolvedValue(undefined),
+    getWindowSize: jest.fn().mockResolvedValue({ width: 1080, height: 2400 }),
+    action:        jest.fn().mockReturnValue({
+      move: jest.fn().mockReturnThis(),
+      down: jest.fn().mockReturnThis(),
+      up:   jest.fn().mockReturnThis(),
+      perform: jest.fn().mockResolvedValue(undefined),
+    }),
   };
 }
 
@@ -85,5 +92,38 @@ describe('normalizarEstadoApp', () => {
     global.browser = b;
     await normalizarEstadoApp();
     expect(b.pause).toHaveBeenCalledWith(3000);
+  });
+});
+
+describe('_manejarOnboarding (via normalizarEstadoApp)', () => {
+  test('acepta permiso de notificaciones y toca VER AHORA en última slide', async () => {
+    const elPermitr  = makeEl(true);
+    const elVerAhora = makeEl(true);
+    global.$ = jest.fn().mockImplementation(async (sel) => {
+      if (sel.includes('"Permitir"'))     return elPermitr;
+      if (sel.includes('"Programación"')) return makeEl(false);
+      if (sel.includes('"VER AHORA"'))    return elVerAhora;
+      return makeEl(false);
+    });
+    await normalizarEstadoApp();
+    expect(elPermitr.click).toHaveBeenCalled();
+    expect(elVerAhora.click).toHaveBeenCalled();
+  });
+
+  test('hace swipes cuando VER AHORA no está visible aún', async () => {
+    global.$ = jest.fn().mockImplementation(async (sel) => {
+      if (sel.includes('"Permitir"'))     return makeEl(false);
+      if (sel.includes('"Programación"')) return makeEl(false);
+      if (sel.includes('"VER AHORA"'))    return makeEl(false);
+      return makeEl(false);
+    });
+    await normalizarEstadoApp();
+    expect(browser.action).toHaveBeenCalled();
+  });
+
+  test('no falla si el onboarding lanza excepción', async () => {
+    global.$ = jest.fn().mockRejectedValue(new Error('session lost'));
+    global.browser = makeBrowser({ estado: 4 });
+    await expect(normalizarEstadoApp()).resolves.not.toThrow();
   });
 });
