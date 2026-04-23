@@ -99,8 +99,6 @@ Si necesitas ajustar un timeout, edítalo ahí — nunca en el test directamente
 ```
 ott-qa-pipeline/
 ├── CLAUDE.md                            ← este archivo (fuente de verdad global)
-├── PROGRESS.md                          ← estado del proyecto por fases
-├── LEARNINGS.md                         ← decisiones técnicas y gotchas
 ├── pytest.ini                           ← config pytest-cov, norecursedirs=apps
 ├── requirements.txt                     ← deps Python
 │
