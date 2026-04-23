@@ -112,12 +112,14 @@ echo "Agente 1 completado."
 # Esto evita re-analizar el diff y permite tests dirigidos basados en los cambios reales.
 # Para repo externo: este archivo puede generarse desde el repo de la empresa pasando
 # --agent1-json a run_with_build.sh en lugar de depender de este script.
+mkdir -p "reports/${APP_ID:-tvnPass}/runs"
 if [[ "${PR_NUMBER}" != "0" ]]; then
   AGENT1_PERSIST="reports/${APP_ID:-tvnPass}/runs/pr${PR_NUMBER}_agent1.json"
-  mkdir -p "reports/${APP_ID:-tvnPass}/runs"
-  cp "$AGENT1_OUTPUT" "$AGENT1_PERSIST"
-  echo "   Agent 1 persistido: ${AGENT1_PERSIST}"
+else
+  AGENT1_PERSIST="reports/${APP_ID:-tvnPass}/runs/manual_${RUN_ID}_agent1.json"
 fi
+cp "$AGENT1_OUTPUT" "$AGENT1_PERSIST"
+echo "   Agent 1 persistido: ${AGENT1_PERSIST}"
 
 # ── 3b. Comentario inicial (iOS no tiene suggest job propio) ─────────────────
 # Android: el suggest job (ubuntu) ya posteó el comentario inicial con el marcador.
