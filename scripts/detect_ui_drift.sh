@@ -5,7 +5,7 @@
 # commiteado. Si cambió → lanza E2E. Si E2E falla → crea issue en GitHub.
 #
 # Uso:
-#   ANDROID_DEVICE_NAME=R5CTB1W92KY GH_TOKEN=xxx bash scripts/detect_ui_drift.sh
+#   ANDROID_DEVICE_NAME=fy9tgmv4kbtox4mj GH_TOKEN=xxx bash scripts/detect_ui_drift.sh
 
 set -euo pipefail
 
@@ -56,7 +56,7 @@ for APP_CTX in "$APPS_DIR"/*/app_context.md; do
   export APP_BUNDLE_ID
 
   if [[ "$PLATFORM" == "android" ]]; then
-    DEVICE="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
+    DEVICE="${ANDROID_DEVICE_NAME:-fy9tgmv4kbtox4mj}"
     python agents/explorer_android.py --device "$DEVICE" 2>/dev/null || {
       echo "  ⚠️  Agente 0 falló — restaurando ui_map anterior"
       cp "$UI_MAP_BACKUP" "$UI_MAP"

@@ -16,7 +16,7 @@ process.env.PATH         = `${ADB_PATH}:${JAVA_HOME}/bin:${process.env.PATH}`;
 const APP_ID = (process.env.APP_ID || 'tvnPass').trim();
 
 // ── Android ───────────────────────────────────────────────────────────────────
-const ANDROID_DEVICE   = (process.env.ANDROID_DEVICE_NAME  || 'R5CTB1W92KY').trim();
+const ANDROID_DEVICE   = (process.env.ANDROID_DEVICE_NAME  || 'fy9tgmv4kbtox4mj').trim();
 const APP_PACKAGE      = (process.env.ANDROID_APP_PACKAGE   || 'com.streann.tvnpass').trim();
 const APP_ACTIVITY     = (process.env.ANDROID_APP_ACTIVITY  || 'com.streann.tvnpass.MainActivity').trim();
 const ANDROID_APPIUM   = (process.env.APPIUM_SERVER_URL     || 'http://localhost:4723').trim();

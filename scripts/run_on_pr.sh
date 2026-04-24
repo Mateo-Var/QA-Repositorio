@@ -159,7 +159,7 @@ if [ "$PLATFORM" = "android" ]; then
     APK_BASENAME=$(basename "$APK_FOUND")
     echo ""
     echo "--- [APK] Detectado en Downloads: ${APK_BASENAME}"
-    DEVICE_SERIAL=$(echo "${ANDROID_DEVICE_NAME:-R5CTB1W92KY}" | tr -d '[:space:]')
+    DEVICE_SERIAL=$(echo "${ANDROID_DEVICE_NAME:-fy9tgmv4kbtox4mj}" | tr -d '[:space:]')
 
     # WiFi ADB requiere conectar explícitamente antes de cualquier comando adb
     if [[ "$DEVICE_SERIAL" == *":"* ]]; then
@@ -278,7 +278,7 @@ if [ "$AGENT2_MODE" = "generate" ]; then
   if [ "$PLATFORM" = "ios" ]; then
     DEVICE="${IOS_DEVICE_UDID:-00008140-00045DCE3422801C}"
   else
-    DEVICE="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
+    DEVICE="${ANDROID_DEVICE_NAME:-fy9tgmv4kbtox4mj}"
   fi
 
   python3 - "$AGENT2_EXECUTE_INPUT" "${APP_ID}" "$DEVICE" "$PLATFORM" <<'PYEOF'
@@ -336,7 +336,7 @@ RUN_URL="${GITHUB_SERVER_URL:-}/${GITHUB_REPOSITORY:-}/actions/runs/${GITHUB_ACT
 if [ "$PLATFORM" = "ios" ]; then
   DEVICE_LABEL="iPhone 16e"
 else
-  DEVICE_LABEL="${ANDROID_DEVICE_NAME:-Samsung R5CTB1W92KY}"
+  DEVICE_LABEL="${ANDROID_DEVICE_NAME:-Xiaomi 24049RN28L}"
 fi
 
 # ── 7. Publicar comentario en el PR (edita el de sugerencias si ya existe) ───

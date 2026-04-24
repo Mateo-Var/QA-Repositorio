@@ -13,7 +13,7 @@
 - Python 3.11 · pytest-cov · Claude API (claude-sonnet-4-6)
 - Android: Appium 2.x · UiAutomator2 · WebdriverIO 9.x · Mocha · Jest 29
 **Plataforma objetivo:**
-- Android: Samsung físico vía WiFi ADB (serial: R5CTB1W92KY) · UiAutomator2
+- Android: Xiaomi 24049RN28L vía USB ADB (serial: fy9tgmv4kbtox4mj · WiFi: 192.168.1.231:5555) · UiAutomator2
 **Apps bajo prueba:** `tvnPass` (Android). Cada app tiene su propio contexto, DOD y skills.
 **Modelo de ejecución:** Una app a la vez según el trigger. El `app_id` determina qué contexto y tests cargar.
 
@@ -229,7 +229,7 @@ await browser.pause(3000);
 // tests/wdio.conf.js — fragmento de capabilities
 {
   platformName:                    'Android',
-  'appium:udid':                   '192.168.1.50:5555', // WiFi ADB — IP:puerto del Samsung físico
+  'appium:udid':                   'fy9tgmv4kbtox4mj', // serial USB Xiaomi 24049RN28L (WiFi: 192.168.1.231:5555)
   'appium:deviceName':             'Android',
   'appium:appPackage':             'com.streann.tvnpass',
   'appium:appActivity':            'com.streann.tvnpass.MainActivity',
@@ -287,7 +287,7 @@ Si falla → pipeline se frena aquí.
 ━━━ FASE 2 — E2E Android en dispositivo físico ━━━━━━━━━━━━━━━
 Agente 2 — Gen/Exec (Android)
     ├── Modo generate → apps/{app_id}/tests/e2e/*.test.js
-    └── Modo execute  → npm run test:android (Samsung R5CTB1W92KY vía WiFi ADB)
+    └── Modo execute  → npm run test:android (Xiaomi 24049RN28L fy9tgmv4kbtox4mj vía USB/WiFi ADB)
 
 scripts/run_android.sh
     └── wdio run wdio.conf.js (UiAutomator2)
@@ -376,7 +376,7 @@ APPIUM_SERVER_URL=           # http://localhost:4723 en local
 APP_ID=                      # identificador de la app (ej: tvnPass)
 
 # ── Android ───────────────────────────────────────────────────
-ANDROID_DEVICE_NAME=         # Serial ADB del Samsung físico (R5CTB1W92KY)
+ANDROID_DEVICE_NAME=         # Serial ADB del Xiaomi físico (fy9tgmv4kbtox4mj)
 ANDROID_APP_PACKAGE=         # com.streann.tvnpass
 ANDROID_APP_ACTIVITY=        # com.streann.tvnpass.MainActivity
 ANDROID_HOME=                # ruta a platform-tools de ADB

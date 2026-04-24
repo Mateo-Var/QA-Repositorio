@@ -43,7 +43,7 @@ jobs:
       - name: Detectar drift UI — todas las apps
         shell: bash
         env:
-          ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'R5CTB1W92KY' }}
+          ANDROID_DEVICE_NAME:   ${{ secrets.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj' }}
           ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
           ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
           APPIUM_SERVER_URL:     ${{ secrets.APPIUM_SERVER_URL || 'http://localhost:4723' }}

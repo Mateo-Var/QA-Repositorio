@@ -58,7 +58,7 @@ fi
 APP_ID="${APP_ID:-tvnPass}"
 APP_PACKAGE="${ANDROID_APP_PACKAGE:-com.streann.tvnpass}"
 APP_ACTIVITY="${ANDROID_APP_ACTIVITY:-com.streann.tvnpass.MainActivity}"
-DEVICE="${ANDROID_DEVICE_NAME:-R5CTB1W92KY}"
+DEVICE="${ANDROID_DEVICE_NAME:-fy9tgmv4kbtox4mj}"
 APPIUM_PORT="4723"
 APK_NAME="$(basename "$APK_PATH")"
 

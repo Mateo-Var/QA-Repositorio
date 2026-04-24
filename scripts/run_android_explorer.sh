@@ -4,7 +4,7 @@
 #
 # Uso:
 #   APP_ID=tvnPass APP_BUNDLE_ID=com.streann.tvnpass \
-#     bash scripts/run_android_explorer.sh --device R5CTB1W92KY
+#     bash scripts/run_android_explorer.sh --device fy9tgmv4kbtox4mj
 
 set -euo pipefail
 
