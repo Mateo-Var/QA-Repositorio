@@ -7,6 +7,13 @@
 
 set -euo pipefail
 
+# Cargar .env del runner si ANTHROPIC_API_KEY no está en el entorno.
+# GitHub Actions no inyecta secrets vacíos; el .env es el fallback local.
+if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+  RUNNER_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/../../../.env"
+  [[ -f "$RUNNER_ENV" ]] && set -a && source "$RUNNER_ENV" && set +a || true
+fi
+
 PR_NUMBER="${1:?PR_NUMBER requerido}"
 BASE_SHA="${2:?BASE_SHA requerido}"
 HEAD_SHA="${3:?HEAD_SHA requerido}"
@@ -96,7 +103,10 @@ EOF
 
 # ── 3. Ejecutar Agente 1 (Analizador) ────────────────────────────────────────
 echo "--- Agente 1: Analizando cambios..."
-APP_ID="${APP_ID:?APP_ID requerido}" python3 agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" > "$AGENT1_OUTPUT"
+AGENT1_STDERR="${TMP_DIR}/qa_agent1_stderr.log"
+APP_ID="${APP_ID:?APP_ID requerido}" python3 agents/analyzer.py "$TRIGGER_FILE" "$DIFF_FILE" \
+  > "$AGENT1_OUTPUT" 2> "$AGENT1_STDERR" \
+  || { echo "ERROR Agente 1 — stderr:"; cat "$AGENT1_STDERR"; exit 1; }
 # Inyectar platform en el output del Agente 1 para que el Agente 2 lo herede explícitamente
 python3 - "$AGENT1_OUTPUT" "$PLATFORM" <<'PYEOF'
 import json, sys
