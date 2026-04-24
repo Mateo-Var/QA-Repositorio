@@ -14,6 +14,14 @@ if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
   [[ -f "$RUNNER_ENV" ]] && set -a && source "$RUNNER_ENV" && set +a || true
 fi
 
+# Verificar que anthropic importa con el Python actual.
+# El runner corre como x86_64 (Rosetta); si pydantic_core fue instalada como
+# arm64 en una sesión distinta, pip no la reemplaza sola — hay que forzarlo.
+if ! python3 -c "import anthropic" 2>/dev/null; then
+  echo "⚠️  anthropic no importa — reinstalando dependencias con arquitectura correcta..."
+  python3 -m pip install -r requirements.txt --force-reinstall --quiet
+fi
+
 PR_NUMBER="${1:?PR_NUMBER requerido}"
 BASE_SHA="${2:?BASE_SHA requerido}"
 HEAD_SHA="${3:?HEAD_SHA requerido}"
