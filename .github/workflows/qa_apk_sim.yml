@@ -1,0 +1,225 @@
+name: QA APK Simulation
+
+# Solo dispara en PRs que apuntan a la rama testing.
+# NO interfiere con qa_agent.yml ni con main.
+on:
+  pull_request:
+    branches: [testing]
+
+permissions:
+  contents: read
+
+# ── Job 1: Tomar el APK del repo y subirlo como artifact ─────────────────────
+jobs:
+  get-apk:
+    name: "Sim 1 — Subir APK"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que demo.apk existe
+        run: |
+          if [[ ! -f "test-assets/demo.apk" ]]; then
+            echo "ERROR: test-assets/demo.apk no existe."
+            echo "Agrega el APK manualmente: cp /ruta/al.apk test-assets/demo.apk && git add test-assets/demo.apk && git commit"
+            exit 1
+          fi
+          echo "✓ demo.apk encontrado ($(du -h test-assets/demo.apk | cut -f1))"
+
+      - name: Subir APK como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-apk
+          path: test-assets/demo.apk
+          retention-days: 1
+
+# ── Job 2: Descargar artifact, instalar en dispositivo y correr tests ─────────
+  qa-tests:
+    name: "Sim 2 — Instalar + E2E"
+    needs: get-apk
+    runs-on: [self-hosted, android]
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install npm deps
+        run: npm install
+
+      - name: Descargar APK del artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-apk
+          path: ./build
+
+      - name: Instalar APK en dispositivo
+        shell: bash
+        env:
+          ANDROID_DEVICE_NAME: ${{ secrets.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj' }}
+          ANDROID_APP_PACKAGE: ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/bin}"
+          export JAVA_HOME="${JAVA_HOME:-/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home}"
+          export PATH="${ANDROID_HOME}:${JAVA_HOME}/bin:${PATH}"
+
+          DEVICE_SERIAL=$(echo "${ANDROID_DEVICE_NAME}" | tr -d '[:space:]')
+          APP_PKG=$(echo "${ANDROID_APP_PACKAGE}" | tr -d '[:space:]')
+          STORE_APK="$HOME/store_base/${APP_PKG}.apk"
+
+          echo "--- Dispositivo: ${DEVICE_SERIAL}"
+
+          # WiFi ADB: conectar si el serial tiene ":"
+          if [[ "$DEVICE_SERIAL" == *":"* ]]; then
+            echo "   Conectando ADB WiFi a ${DEVICE_SERIAL}..."
+            adb connect "${DEVICE_SERIAL}" 2>/dev/null || true
+            sleep 2
+          fi
+
+          # Verificar que responde; si no, usar el primero disponible
+          DEVICE_OK=$(adb -s "${DEVICE_SERIAL}" get-state 2>/dev/null || true)
+          if [[ "$DEVICE_OK" != "device" ]]; then
+            FALLBACK=$(adb devices 2>/dev/null | awk '/\tdevice$/{print $1; exit}')
+            if [[ -n "$FALLBACK" ]]; then
+              echo "   ${DEVICE_SERIAL} no responde — usando ${FALLBACK}"
+              DEVICE_SERIAL="$FALLBACK"
+              DEVICE_OK="device"
+            fi
+          fi
+
+          if [[ "$DEVICE_OK" != "device" ]]; then
+            echo "ERROR: ningún dispositivo ADB disponible."
+            echo "Verifica que el Xiaomi esté conectado por USB o que WiFi ADB esté activo."
+            exit 1
+          fi
+          echo "   ✓ Dispositivo listo: ${DEVICE_SERIAL}"
+
+          # Desinstalar versión actual si está instalada
+          INSTALLED=$(adb -s "${DEVICE_SERIAL}" shell pm list packages 2>/dev/null \
+            | grep "^package:${APP_PKG}$" || true)
+          if [[ -n "$INSTALLED" ]]; then
+            echo "   Desinstalando versión actual de ${APP_PKG}..."
+            adb -s "${DEVICE_SERIAL}" uninstall "${APP_PKG}" > /dev/null
+            echo "   ✓ Desinstalada"
+          fi
+
+          # Instalar versión del Store como base (si existe)
+          if [[ -f "$STORE_APK" ]]; then
+            echo "   Instalando versión del Store como base..."
+            adb -s "${DEVICE_SERIAL}" install -r "$STORE_APK"
+            echo "   ✓ Store instalado"
+          else
+            echo "   ⚠️  $STORE_APK no existe — continuando sin base del Store"
+            echo "      (para tenerla: adb pull <apk_en_device> $STORE_APK)"
+          fi
+
+          # Instalar el APK de la simulación encima
+          echo "   Instalando build de simulación..."
+          adb -s "${DEVICE_SERIAL}" install -r ./build/demo.apk
+          echo "   ✓ APK de simulación instalado"
+          sleep 3
+
+      - name: Correr tests E2E
+        shell: bash
+        env:
+          ANDROID_DEVICE_NAME:  ${{ secrets.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj' }}
+          ANDROID_APP_PACKAGE:  ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
+          ANDROID_APP_ACTIVITY: ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
+          APPIUM_SERVER_URL:    ${{ secrets.APPIUM_SERVER_URL || 'http://localhost:4723' }}
+          APP_ID:               ${{ secrets.APP_ID || 'tvnPass' }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/bin}"
+          export JAVA_HOME="${JAVA_HOME:-/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home}"
+          export PATH="${ANDROID_HOME}:${JAVA_HOME}/bin:${PATH}"
+          export APPIUM_HOME="$HOME/.appium"
+
+          APPIUM_PORT="${APPIUM_SERVER_URL##*:}"
+          APPIUM_PORT=$(echo "${APPIUM_PORT%%/*}" | tr -d '[:space:]')
+
+          # Verificar Appium con TCP check (más fiable que curl)
+          _appium_up() {
+            python3 -c "
+          import socket, sys
+          try:
+              s = socket.create_connection(('127.0.0.1', $APPIUM_PORT), timeout=5)
+              s.close()
+          except Exception:
+              sys.exit(1)
+          sys.exit(0)
+          " 2>/dev/null
+          }
+
+          echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
+          if _appium_up; then
+            echo "   ✓ Appium ya está corriendo"
+          else
+            echo "   Appium no responde — liberando puerto e iniciando..."
+            lsof -ti :"${APPIUM_PORT}" | xargs kill -9 2>/dev/null || true
+            sleep 4
+            mkdir -p "reports/${APP_ID}/logs"
+            appium --port "${APPIUM_PORT}" --relaxed-security \
+              --log "reports/${APP_ID}/logs/appium_sim.log" > /dev/null 2>&1 &
+            READY=0
+            for i in $(seq 1 30); do
+              sleep 1
+              if _appium_up; then
+                echo "   ✓ Appium listo (${i}s)"
+                READY=1
+                break
+              fi
+            done
+            if [[ $READY -eq 0 ]]; then
+              echo "ERROR: Appium no inició en 30s"
+              exit 1
+            fi
+          fi
+
+          echo "--- Corriendo tests E2E..."
+          npm run test:android
+
+      - name: Restaurar versión del Store
+        if: always()
+        shell: bash
+        env:
+          ANDROID_DEVICE_NAME: ${{ secrets.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj' }}
+          ANDROID_APP_PACKAGE: ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
+        run: |
+          export PATH="/opt/homebrew/bin:$PATH"
+          export ANDROID_HOME="${ANDROID_HOME:-/opt/homebrew/bin}"
+
+          DEVICE_SERIAL=$(echo "${ANDROID_DEVICE_NAME}" | tr -d '[:space:]')
+          APP_PKG=$(echo "${ANDROID_APP_PACKAGE}" | tr -d '[:space:]')
+          STORE_APK="$HOME/store_base/${APP_PKG}.apk"
+
+          if [[ "$DEVICE_SERIAL" == *":"* ]]; then
+            adb connect "${DEVICE_SERIAL}" 2>/dev/null || true
+            sleep 2
+          fi
+
+          if [[ -f "$STORE_APK" ]]; then
+            echo "--- Restaurando versión del Store..."
+            adb -s "${DEVICE_SERIAL}" uninstall "${APP_PKG}" 2>/dev/null || true
+            adb -s "${DEVICE_SERIAL}" install -r "$STORE_APK"
+            echo "   ✓ Store restaurado en el dispositivo"
+          else
+            echo "   ⚠️  $STORE_APK no existe — no se puede restaurar"
+          fi
+
+      - name: Subir reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-sim-reports-${{ github.run_id }}
+          path: reports/
+          retention-days: 7
