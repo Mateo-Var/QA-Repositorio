@@ -59,7 +59,44 @@ _SKILL_KEYWORDS: dict[str, list[str]] = {
     "subscription_states": ["subscription", "premium", "paywall", "purchase", "plan", "billing"],
     "offline_patterns":    ["offline", "network", "connectivity", "reachability", "no_connection"],
     "content_risk_matrix": ["content", "catalog", "rating", "age", "parental", "risk"],
+    # Nuevos — portados de patrones detectados en appium-test
+    "live_player":         ["live", "epg", "signal", "stream", "hls", "exoplayer", "channel", "buffer"],
+    "vod_content":         ["vod", "episode", "season", "show", "program", "serie", "replay", "catch"],
+    "ui_drift":            ["ui", "component", "layout", "nav", "tab", "bottom", "hero", "carousel"],
 }
+
+# Patrones de errores conocidos en apps de streaming Android.
+# Portado de appium-test/utils/helpers.js (waitForErrorMessage) + experiencia propia.
+# El Agente 1 los usa para priorizar tests de resiliencia si el diff toca áreas de red/player.
+STREAMING_ERROR_KEYWORDS = [
+    # Errores genéricos
+    "error", "Error", "ERROR", "fallo", "Fallo", "failed", "Failed",
+    # Errores de red / conectividad
+    "sin conexión", "Sin conexión", "sin internet", "no internet",
+    "network error", "connection error", "timeout", "time out",
+    "no se pudo conectar", "no se pudo cargar",
+    # Errores de reproducción
+    "no se puede reproducir", "error al reproducir", "playback error",
+    "video no disponible", "contenido no disponible",
+    "señal no disponible", "sin señal",
+    # Errores de autenticación/sesión (para apps con login)
+    "sesión expirada", "session expired", "no autorizado", "unauthorized",
+    # Errores de pago/suscripción
+    "suscripción requerida", "subscription required", "plan requerido",
+    # Estado vacío (no es error técnico pero indica problema)
+    "no hay resultados", "sin resultados", "no results",
+    "no hay contenido", "sin contenido",
+]
+
+
+def _is_miui_or_samsung(device_name: str) -> bool:
+    """
+    Detecta si el dispositivo es MIUI (Xiaomi) o Samsung.
+    En ambos hay quirks con el.click() y GestureController.
+    Portado de AUTOMATION_LESSONS.md del proyecto hermano.
+    """
+    lower = (device_name or "").lower()
+    return any(kw in lower for kw in ["redmi", "xiaomi", "miui", "samsung", "galaxy", "r5c", "r3c"])
 
 
 def _infer_relevant_skills(diff: str) -> set[str] | None:
@@ -112,6 +149,17 @@ def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
     dod_rules = load_dod_rules(app_id)
     skills = load_skills(app_id, diff=diff)  # carga selectiva basada en el diff
 
+    device_name = (
+        trigger.get("device")
+        or os.environ.get("ANDROID_DEVICE_NAME", "")
+    )
+    device_notes = ""
+    if _is_miui_or_samsung(device_name):
+        device_notes = (
+            "\n> ⚠️  Dispositivo MIUI/Samsung detectado: preferir interacciones via ADB bounds "
+            "(tapAdb/tapByBounds) sobre el.click() — ver AUTOMATION_LESSONS para detalles.\n"
+        )
+
     if trigger.get("type") == "issue_comment":
         change_section = (
             "## Solicitud del issue\n"
@@ -126,7 +174,7 @@ def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
 
 ## Trigger
 {json.dumps(trigger, indent=2)}
-
+{device_notes}
 {change_section}
 
 ## Contexto de la app
@@ -142,6 +190,10 @@ def build_user_message(trigger: dict, diff: str, app_id: str) -> str:
 
 ## Contexto de sesión (comprimido)
 {session_summary}
+
+## Patrones de error conocidos (streaming Android)
+Usa esta lista para decidir si agregar tests de resiliencia cuando el diff toca red/player:
+{json.dumps(STREAMING_ERROR_KEYWORDS[:20], ensure_ascii=False)}
 """
 
 

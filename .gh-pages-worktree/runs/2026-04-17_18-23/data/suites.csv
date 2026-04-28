@@ -1,0 +1,5 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","2586","reproductor_live_carga_player_en_pantalla","Reproductor Live — tvnPass Android","2026-04-17","failed","2026-04-17","","","",""
+"","1637","reproductor_live_programacion_hoy_visible","Reproductor Live — tvnPass Android","2026-04-17","failed","2026-04-17","","","",""
+"","17676","reproductor_live_controles_visibles_al_tocar","Reproductor Live — tvnPass Android","2026-04-17","broken","2026-04-17","","","",""
+"","1703","reproductor_live_tab_en_vivo_visible","Reproductor Live — tvnPass Android","2026-04-17","failed","2026-04-17","","","",""

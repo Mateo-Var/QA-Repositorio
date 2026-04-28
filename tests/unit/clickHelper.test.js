@@ -1,4 +1,4 @@
-const { clickText } = require('../helpers/clickHelper');
+const { clickText, waitAndClick } = require('../helpers/clickHelper');
 
 function makeEl(exists = true) {
   return {
@@ -9,6 +9,7 @@ function makeEl(exists = true) {
 
 beforeEach(() => {
   global.$ = jest.fn().mockResolvedValue(makeEl(true));
+  global.browser = { pause: jest.fn().mockResolvedValue(undefined) };
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -46,5 +47,45 @@ describe('clickText', () => {
     global.$ = jest.fn().mockResolvedValue(el);
     await clickText('~Mostrar controles');
     expect(el.click).toHaveBeenCalled();
+  });
+});
+
+describe('waitAndClick', () => {
+  test('hace click en cuanto el elemento aparece', async () => {
+    const el = makeEl(true);
+    global.$ = jest.fn().mockResolvedValue(el);
+    await waitAndClick('Hoy', 5000);
+    expect(el.click).toHaveBeenCalled();
+  });
+
+  test('reintenta hasta que el elemento esté disponible', async () => {
+    const elFalse = makeEl(false);
+    const elTrue  = makeEl(true);
+    let call = 0;
+    global.$ = jest.fn().mockImplementation(async () => {
+      call++;
+      return call < 3 ? elFalse : elTrue;
+    });
+    await waitAndClick('EN VIVO', 5000);
+    expect(elTrue.click).toHaveBeenCalled();
+  });
+
+  test('lanza error si el elemento nunca aparece dentro del timeout', async () => {
+    global.$ = jest.fn().mockResolvedValue(makeEl(false));
+    await expect(waitAndClick('FANTASMA', 200)).rejects.toThrow('waitAndClick');
+  });
+
+  test('usa UiSelector para texto sin prefijo ~', async () => {
+    const el = makeEl(true);
+    global.$ = jest.fn().mockResolvedValue(el);
+    await waitAndClick('Mañana', 5000);
+    expect(global.$).toHaveBeenCalledWith('android=new UiSelector().text("Mañana")');
+  });
+
+  test('usa accessibility id para texto con prefijo ~', async () => {
+    const el = makeEl(true);
+    global.$ = jest.fn().mockResolvedValue(el);
+    await waitAndClick('~Buscar', 5000);
+    expect(global.$).toHaveBeenCalledWith('~Buscar');
   });
 });

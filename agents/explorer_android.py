@@ -135,6 +135,37 @@ def find_tappable(driver) -> list[dict]:
     ]
 
 
+def _adb_tap_from_source(driver, name: str) -> bool:
+    """
+    Fallback: extrae bounds del page source y hace tap via ADB shell.
+    Portado de appium-test/AUTOMATION_LESSONS.md — el.click() falla silenciosamente
+    en MIUI y algunos dispositivos Samsung con GestureController activo.
+    """
+    try:
+        src = driver.page_source
+        for attr in [f'content-desc="{name}"', f'text="{name}"']:
+            idx = src.find(attr)
+            if idx == -1:
+                continue
+            tag_start = src.rfind("<", 0, idx)
+            tag_end   = src.find(">", idx)
+            if tag_start == -1 or tag_end == -1:
+                continue
+            tag = src[tag_start:tag_end + 1]
+            import re as _re
+            m = _re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', tag)
+            if not m:
+                continue
+            x = (int(m.group(1)) + int(m.group(3))) // 2
+            y = (int(m.group(2)) + int(m.group(4))) // 2
+            driver.execute_script("mobile: shell", {"command": "input", "args": ["tap", str(x), str(y)]})
+            time.sleep(TAP_WAIT)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def try_tap(driver, name: str) -> bool:
     try:
         # Intentar por content-desc primero, luego por texto
@@ -149,7 +180,8 @@ def try_tap(driver, name: str) -> bool:
                 return True
             except Exception:
                 continue
-        return False
+        # Fallback ADB: más confiable en MIUI y Samsung con GestureController
+        return _adb_tap_from_source(driver, name)
     except Exception:
         return False
 
@@ -228,20 +260,46 @@ class ScreenWalker:
         return base + suffix
 
     def _detect_bottom_bar(self) -> list[str]:
-        """Detecta tabs de la barra de navegación inferior."""
+        """
+        Detecta tabs de la barra de navegación inferior.
+        Lección de AUTOMATION_LESSONS.md: en React Native los tabs usan content-desc,
+        no text — hay que buscar en ambos atributos.
+        """
         tabs = []
+        seen = set()
         try:
-            # BottomNavigationView o barra con tabs
+            # Estrategia 1: BottomNavigationView / LinearLayout con tabs
             els = self.driver.find_elements(
                 AppiumBy.XPATH,
                 "//android.widget.LinearLayout[@resource-id]//android.widget.TextView"
             )
             for el in els[:6]:
-                text = el.get_attribute("text") or el.get_attribute("content-desc") or ""
-                if text and text not in SKIP_NAMES:
-                    tabs.append(text)
+                label = el.get_attribute("content-desc") or el.get_attribute("text") or ""
+                if label and label not in SKIP_NAMES and label not in seen:
+                    seen.add(label)
+                    tabs.append(label)
         except Exception:
             pass
+
+        if not tabs:
+            try:
+                # Estrategia 2: Buttons con content-desc en la parte inferior de la pantalla
+                size = self.driver.get_window_size()
+                bottom_y = size["height"] * 0.85
+                els = self.driver.find_elements(AppiumBy.XPATH, "//android.widget.Button")
+                for el in els:
+                    try:
+                        loc = el.location
+                        if loc["y"] >= bottom_y:
+                            label = el.get_attribute("content-desc") or el.get_attribute("text") or ""
+                            if label and label not in SKIP_NAMES and label not in seen:
+                                seen.add(label)
+                                tabs.append(label)
+                    except Exception:
+                        continue
+            except Exception:
+                pass
+
         return tabs[:6]
 
     def _wait_for_load(self, timeout: int = 15) -> None:
@@ -336,11 +394,14 @@ def connect_appium(package: str, activity: str, device_serial: str) -> webdriver
         "appium:appPackage":               package,
         "appium:appActivity":              activity,
         "appium:noReset":                  True,
-        "appium:newCommandTimeout":        60,
-        "appium:adbExecTimeout":           30000,
+        "appium:newCommandTimeout":        120,
+        "appium:adbExecTimeout":           60000,  # 60s — MIUI y dispositivos lentos necesitan más tiempo
         # DEC-01: crítico en apps con animaciones continuas
         "appium:waitForIdleTimeout":       0,
         "appium:waitForSelectorTimeout":   0,
+        # Compatibilidad con MIUI y Android 11+ (de AUTOMATION_LESSONS.md del proyecto hermano)
+        "appium:skipDeviceInitialization": True,
+        "appium:ignoreHiddenApiPolicyError": True,
     }
 
     appium_url = os.environ.get("APPIUM_SERVER_URL", "http://localhost:4723")
