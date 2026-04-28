@@ -133,16 +133,14 @@ def generate_tests(input_json: dict) -> dict:
     last_err = None
 
     for attempt in range(2):
+        call_messages = messages + ([{"role": "assistant", "content": "{"}] if attempt == 0 else [])
         response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=8096,
             system=load_prompt(),
-            messages=messages,
+            messages=call_messages,
         )
-        raw = response.content[0].text.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+        raw = ("{" if attempt == 0 else "") + response.content[0].text.strip()
         start = raw.find("{")
         end = raw.rfind("}")
         if start != -1 and end != -1:

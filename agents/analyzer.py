@@ -206,15 +206,15 @@ def call_claude(trigger: dict, diff: str, app_id: str) -> dict:
         model="claude-haiku-4-5-20251001",
         max_tokens=2048,
         system=system_prompt,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "user",      "content": user_message},
+            {"role": "assistant", "content": "{"},
+        ],
     )
 
-    raw = response.content[0].text.strip()
-    # Haiku a veces envuelve el JSON en ```json ... ``` — lo extraemos
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-    # Extraer solo el objeto JSON (Haiku a veces agrega texto después del })
+    # prefill fuerza que la respuesta empiece con "{" — lo reincorporamos
+    raw = "{" + response.content[0].text.strip()
+    # Extraer solo el objeto JSON (de { al último })
     start = raw.find("{")
     end = raw.rfind("}")
     if start != -1 and end != -1:
