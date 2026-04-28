@@ -5,8 +5,14 @@
  * Solución: UiSelector devuelve true/false inmediatamente (no serializa el árbol completo).
  */
 
+const IS_IOS = (process.env.APP_PLATFORM || 'android').trim().toLowerCase() === 'ios';
+
 async function pageContains(text) {
-  const selectors = [
+  const selectors = IS_IOS ? [
+    `~${text}`,
+    `-ios predicate string:name == "${text}"`,
+    `-ios predicate string:label == "${text}"`,
+  ] : [
     `android=new UiSelector().text("${text}")`,
     `android=new UiSelector().description("${text}")`,
     `android=new UiSelector().textContains("${text}")`,

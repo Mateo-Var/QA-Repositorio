@@ -4,11 +4,14 @@
  * Soporta prefijo ~ para accessibility ID (content-desc) usado por tests generados.
  */
 
+const IS_IOS = (process.env.APP_PLATFORM || 'android').trim().toLowerCase() === 'ios';
+
 async function clickText(text) {
   let el;
   if (text.startsWith('~')) {
-    // Accessibility ID selector — mapea a content-desc en Android
     el = await $(`~${text.slice(1)}`);
+  } else if (IS_IOS) {
+    el = await $(`~${text}`);
   } else {
     el = await $(`android=new UiSelector().text("${text}")`);
   }

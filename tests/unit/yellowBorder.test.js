@@ -1,6 +1,5 @@
 'use strict';
 
-// yellowBorder.js usa browser global y pngjs — mockeamos ambos
 jest.mock('pngjs', () => {
   const EventEmitter = require('events');
   class PNG extends EventEmitter {
@@ -12,117 +11,111 @@ jest.mock('pngjs', () => {
 
 const { findYellowBorderIndex } = require('../helpers/yellowBorder');
 
-function makePng(pixels) {
-  // pixels: array de { x, y, r, g, b }; width/height derivados
-  const width  = 100;
-  const height = 100;
-  const data   = Buffer.alloc(width * height * 4, 0);
-  for (const { x, y, r, g, b } of pixels) {
+function makePng({ width = 200, height = 200, yellowPixels = [] } = {}) {
+  const { PNG } = require('pngjs');
+  const data = Buffer.alloc(width * height * 4, 0);
+  for (const { x, y } of yellowPixels) {
     const idx = (y * width + x) * 4;
-    data[idx]     = r;
-    data[idx + 1] = g;
-    data[idx + 2] = b;
+    data[idx]     = 255;
+    data[idx + 1] = 198;
+    data[idx + 2] = 39;
     data[idx + 3] = 255;
   }
-  return { data, width, height };
+  const png = Object.assign(new PNG(), { data, width, height });
+  PNG.prototype.parse = function (buf, cb) { process.nextTick(() => cb(null, png)); return this; };
 }
 
-function makeElement(centerY) {
-  return {
-    getRect: jest.fn().mockResolvedValue({ x: 0, y: centerY - 20, width: 100, height: 40 }),
-  };
+function makeElement(rect) {
+  return { getRect: jest.fn().mockResolvedValue(rect) };
 }
 
 beforeEach(() => {
-  global.browser = { takeScreenshot: jest.fn() };
+  global.browser = {
+    takeScreenshot: jest.fn().mockResolvedValue(Buffer.alloc(10).toString('base64')),
+    getWindowSize:  jest.fn().mockResolvedValue({ width: 200, height: 200 }),
+  };
 });
 
 afterEach(() => jest.clearAllMocks());
 
-// ── isYellow internals vía findYellowBorderIndex ──────────────────────────────
-
 describe('findYellowBorderIndex — sin amarillo', () => {
-  test('retorna -1 si la imagen no tiene píxeles amarillos', async () => {
-    const { PNG } = require('pngjs');
-    const png = Object.assign(new PNG(), makePng([])); // imagen negra
-    PNG.prototype.parse = function (buf, cb) { process.nextTick(() => cb(null, png)); return this; };
+  test('retorna -1 si no hay píxeles amarillos', async () => {
+    makePng();
+    const result = await findYellowBorderIndex([makeElement({ x: 10, y: 10, width: 80, height: 40 })]);
+    expect(result).toBe(-1);
+  });
 
-    global.browser.takeScreenshot.mockResolvedValue(
-      Buffer.alloc(10).toString('base64')
-    );
-
-    const elements = [makeElement(50)];
-    const result = await findYellowBorderIndex(elements);
+  test('retorna -1 si no hay elementos', async () => {
+    makePng();
+    const result = await findYellowBorderIndex([]);
     expect(result).toBe(-1);
   });
 });
 
 describe('findYellowBorderIndex — con amarillo', () => {
-  function setupPngWithYellow(yellowY) {
-    const { PNG } = require('pngjs');
-    // Poner suficientes píxeles amarillos (>3) alrededor de yellowY
-    const pixels = [];
-    for (let x = 0; x < 20; x += 2) {
-      pixels.push({ x, y: yellowY, r: 255, g: 198, b: 39 });
-    }
-    const png = Object.assign(new PNG(), makePng(pixels));
-    PNG.prototype.parse = function (buf, cb) { process.nextTick(() => cb(null, png)); return this; };
-    global.browser.takeScreenshot.mockResolvedValue(Buffer.alloc(10).toString('base64'));
-  }
+  test('detecta el elemento cuyo borde izquierdo tiene píxeles amarillos', async () => {
+    // sampleLeftBorder muestrea y desde y0=50 con paso 4: 50,54,58,...86
+    const yellowPixels = [];
+    for (let y = 50; y < 90; y += 4) yellowPixels.push({ x: 42, y });
+    makePng({ yellowPixels });
 
-  test('retorna el índice del elemento más cercano al cluster amarillo', async () => {
-    setupPngWithYellow(40); // cluster Y ≈ 40+10=50
-    const elements = [makeElement(50), makeElement(80)];
-    const result = await findYellowBorderIndex(elements);
+    const el0 = makeElement({ x: 50,  y: 50,  width: 80, height: 40 });
+    const el1 = makeElement({ x: 120, y: 50,  width: 80, height: 40 });
+    const result = await findYellowBorderIndex([el0, el1]);
     expect(result).toBe(0);
   });
 
-  test('retorna -1 si ningún elemento está dentro de 200px del cluster', async () => {
-    setupPngWithYellow(0); // cluster Y ≈ 10
-    const elements = [makeElement(250)]; // dist > 200
-    const result = await findYellowBorderIndex(elements);
-    expect(result).toBe(-1);
-  });
+  test('elige el elemento con más píxeles amarillos en su borde', async () => {
+    const yellowPixels = [];
+    for (let y = 100; y < 140; y += 4) yellowPixels.push({ x: 92, y });
+    makePng({ yellowPixels });
 
-  test('elige el elemento más cercano entre varios', async () => {
-    setupPngWithYellow(60); // cluster Y ≈ 70
-    const elements = [makeElement(20), makeElement(72), makeElement(90)];
-    const result = await findYellowBorderIndex(elements);
+    const el0 = makeElement({ x: 10,  y: 10,  width: 60, height: 30 });
+    const el1 = makeElement({ x: 100, y: 100, width: 60, height: 40 });
+    const result = await findYellowBorderIndex([el0, el1]);
     expect(result).toBe(1);
   });
 
-  test('usa fallback getLocation/getSize si getRect falla', async () => {
-    setupPngWithYellow(40);
-    const el = {
-      getRect:    jest.fn().mockRejectedValue(new Error('no rect')),
-      getLocation: jest.fn().mockResolvedValue({ y: 30 }),
-      getSize:    jest.fn().mockResolvedValue({ height: 40 }),
-    };
+  test('retorna -1 si el conteo de amarillos es menor a 3', async () => {
+    makePng({ yellowPixels: [{ x: 42, y: 52 }, { x: 42, y: 56 }] });
+    const el = makeElement({ x: 50, y: 50, width: 80, height: 40 });
     const result = await findYellowBorderIndex([el]);
-    expect(result).toBe(0);
-  });
-
-  test('ignora elementos cuya posición no se puede obtener', async () => {
-    setupPngWithYellow(40);
-    const bad = {
-      getRect:    jest.fn().mockRejectedValue(new Error('no rect')),
-      getLocation: jest.fn().mockRejectedValue(new Error('no loc')),
-      getSize:    jest.fn().mockRejectedValue(new Error('no size')),
-    };
-    const good = makeElement(50);
-    const result = await findYellowBorderIndex([bad, good]);
-    expect(result).toBe(1);
+    expect(result).toBe(-1);
   });
 });
 
-describe('findYellowBorderIndex — error al decodificar PNG', () => {
-  test('rechaza la promesa si pngjs devuelve error', async () => {
+describe('findYellowBorderIndex — escala física/lógica', () => {
+  test('aplica factor de escala 2x correctamente', async () => {
+    // Escala 2x: rect lógico {x:25,y:25,w:40,h:20} → físico {x:50,y:50,w:80,h:40}
+    // sampleLeftBorder físico: x0=40,x1=70, y0=50,y1=90 → muestrea y=50,54,58,...86
+    global.browser.getWindowSize.mockResolvedValue({ width: 100, height: 100 });
+    const yellowPixels = [];
+    for (let y = 50; y < 90; y += 4) yellowPixels.push({ x: 42, y });
+    makePng({ yellowPixels });
+
+    const el = makeElement({ x: 25, y: 25, width: 40, height: 20 });
+    const result = await findYellowBorderIndex([el]);
+    expect(result).toBe(0);
+  });
+});
+
+describe('findYellowBorderIndex — errores', () => {
+  test('rechaza si pngjs devuelve error', async () => {
     const { PNG } = require('pngjs');
     PNG.prototype.parse = function (buf, cb) {
       process.nextTick(() => cb(new Error('PNG corrupto')));
       return this;
     };
-    global.browser.takeScreenshot.mockResolvedValue(Buffer.alloc(10).toString('base64'));
-    await expect(findYellowBorderIndex([makeElement(50)])).rejects.toThrow('PNG corrupto');
+    await expect(
+      findYellowBorderIndex([makeElement({ x: 0, y: 0, width: 10, height: 10 })])
+    ).rejects.toThrow('PNG corrupto');
+  });
+
+  test('ignora elementos donde getRect falla y continúa sin lanzar', async () => {
+    makePng();
+    const bad  = { getRect: jest.fn().mockRejectedValue(new Error('no rect')) };
+    const good = makeElement({ x: 10, y: 10, width: 60, height: 30 });
+    const result = await findYellowBorderIndex([bad, good]);
+    expect(result).toBe(-1);
   });
 });

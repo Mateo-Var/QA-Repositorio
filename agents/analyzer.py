@@ -9,6 +9,8 @@ Responsabilidad:
 - Una sola llamada a la API de Claude por ejecución.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re

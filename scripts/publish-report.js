@@ -462,7 +462,7 @@ async function main() {
   console.log('\n🚀 Subiendo a GitHub Pages...')
   run('git add -A', { cwd: WORKTREE_DIR })
   run(`git commit -m "report: corrida ${ts}"`, { cwd: WORKTREE_DIR })
-  run(`git push ${REMOTE} ${BRANCH}`, { cwd: WORKTREE_DIR })
+  run(`git push ${REMOTE} ${BRANCH} --force-with-lease`, { cwd: WORKTREE_DIR })
   run(`git worktree remove --force "${WORKTREE_DIR}"`, { cwd: ROOT })
 
   const reportUrl = BASE_URL ? `${BASE_URL}/runs/${ts}/` : `(configurar GITHUB_PAGES_URL)`

@@ -2,7 +2,7 @@
 
 > Estado real del proyecto y roadmap completo.
 > Se actualiza cuando el usuario lo pide.
-> Última actualización: 2026-04-14
+> Última actualización: 2026-04-23
 
 ---
 
@@ -11,10 +11,19 @@
 ### Fases en cada PR
 | Fase | Qué hace | Quién lo corre | Estado |
 |------|----------|----------------|--------|
-| **Fase 0** | Claude lee el diff → sugiere tests → comenta en el PR. Incluye escenarios de streaming: red, audio, VPN, geo/país, bitrate | Agent 1 · ubuntu | ✅ Completo |
-| **Fase 1** | Jest unit tests · cobertura mínima 70% · sin dispositivo | Node · ubuntu | ✅ Completo · 31 tests · 98.68% |
-| **Fase 2** | E2E Android (+ iOS futuro) en dispositivo físico · screenshots + video automáticos | Agent 2 · Mac Mini self-hosted | 🔧 Demo pendiente |
-| **Fase 3** | Claude Vision recibe screenshots y decide: passed / failed / blocking. Si blocking → bloquea el merge | Agent 3 · Mac Mini self-hosted | 🔧 Integrado · pendiente demo |
+| **Fase 0** | Claude lee el diff → sugiere tests → comenta en el PR. Android y iOS con comentarios separados (`<!-- QA-ANDROID -->` / `<!-- QA-IOS -->`), cada plataforma edita solo el suyo | Agent 1 · ubuntu | ✅ Completo |
+| **Fase 1** | Jest unit tests · cobertura mínima 70% · sin dispositivo | Node · ubuntu | ✅ Completo · 36 tests · >70% cobertura |
+| **Fase 2** | E2E Android + iOS en dispositivo físico · screenshots + video automáticos · Agent 1 output persistido para reusar en build manual | Agent 2 · Mac Mini self-hosted | ✅ Completo Android · ✅ Completo iOS |
+| **Fase 3** | Claude Vision recibe screenshots y decide: passed / failed / blocking. Si blocking → bloquea el merge | Agent 3 · Mac Mini self-hosted | ✅ Integrado · corre después de cada E2E |
+
+### Flujo build manual (APK desde Slack)
+| Paso | Qué hace | Estado |
+|------|----------|--------|
+| `run_with_build.sh` | Detecta APK más reciente de `~/Downloads` filtrando por `ANDROID_APP_PACKAGE` (formato `com.pkg.app-version.apk`) → instala → reutiliza Agent 1 de Fase 0 → corre Fase 2→3→4 | ✅ Completo |
+| APK en `run_on_pr.sh` | Si hay APK en `~/Downloads` que coincida con el package, lo instala automáticamente antes del E2E. ADB auto-detect USB/WiFi si serial no responde | ✅ Completo |
+| Agent 1 reuse | `run_with_build.sh` usa `reports/{app_id}/runs/pr{N}_agent1.json` guardado por Fase 0 — no re-analiza, no gasta tokens. La carpeta `runs/` vive solo en el runner (Mac Mini), no se sube a git. Si el run viene de un PR real: guarda `pr{N}_agent1.json` (sobreescribe si el mismo PR vuelve a correr). Si viene de un push/manual: guarda `manual_{run_id}_agent1.json` (archivo nuevo por run). Bug corregido 2026-04-23: antes `PR_NUMBER=0` impedía crear la carpeta — ahora `mkdir -p` corre siempre. | ✅ Completo |
+| Onboarding post-install | `normalizarEstadoApp()` detecta y pasa pantalla de bienvenida: permiso notificaciones → 2 swipes derecha→izquierda → tap "VER AHORA" | ✅ Completo |
+| `--agent1-json` | Param preparado para recibir análisis desde repo externo de la empresa | ✅ Arquitectura lista · integración pendiente |
 
 ### Fases solo en merge a main
 | Fase | Qué hace | Estado |
@@ -84,9 +93,9 @@
 
 | Componente | Dónde corre | Estado |
 |------------|-------------|--------|
-| Runner GitHub Actions | Windows PC self-hosted · label `android` | ✅ Activo |
-| Appium 3.x + UiAutomator2 | Mismo runner | ✅ Activo |
-| Mac Mini | Futuro self-hosted · Android + iOS en paralelo | ⏳ Migración pendiente |
+| Runner GitHub Actions | Mac Mini self-hosted · label `android` · binario arm64 | ✅ Activo |
+| Appium 3.x + UiAutomator2 | Mismo runner Mac Mini | ✅ Activo |
+| iOS runner | Mac Mini self-hosted · Appium port 4724 · XCUITest | ✅ Configurado en workflow |
 | Allure CLI | allure-commandline (npm devDep) | ✅ Configurado |
 | Fastlane | — | ⏳ No configurado |
 
@@ -95,13 +104,17 @@
 ## Próximos pasos (en orden)
 
 1. ~~Demo completo Fases 0-3~~ ✅
-2. ~~Fase 4 — Allure~~ ✅ — `@wdio/allure-reporter` + `allure-commandline`, artifact en cada PR, GitHub Pages en merge a main
-3. ~~UI Drift Detection semanal~~ ✅ — `detect_ui_drift.sh` + `nightly.yml` (lunes 8AM UTC)
-4. **Habilitar GitHub Pages** — Settings → Pages → Source → "GitHub Actions" (configuración manual única en el repo)
-5. **Fase 5 — Build** — `gradlew bundleRelease` (AAB) via Fastlane — pendiente keystore de firma
-6. **Fase 6 — Distribución** — Firebase App Distribution + notificación Slack — pendiente keystore + Firebase App ID
-7. **Migrar a Mac Mini** — Registrar runner, cambiar paths hardcodeados de Windows → variables, validar ADB WiFi
-8. **Agregar iOS (al migrar a Mac Mini):**
+2. ~~Fase 4 — Allure~~ ✅
+3. ~~UI Drift Detection semanal~~ ✅
+4. ~~Migrar a Mac Mini~~ ✅ — runner arm64, paths macOS, ADB WiFi
+5. ~~Soporte iOS en agentes y scripts~~ ✅ — multi-platform en Agent 1/2/3, comentarios PR separados por plataforma
+6. ~~Flujo build manual (APK desde Slack)~~ ✅ — `run_with_build.sh` con auto-detect y Agent 1 reuse
+7. **Habilitar GitHub Pages** — Settings → Pages → Source → "GitHub Actions" (configuración manual única en el repo)
+8. **Probar flujo completo build manual** — correr `./scripts/run_with_build.sh --pr <N>` con APK real de Slack
+9. **Conectar repo externo** — pasar `--agent1-json` desde el pipeline de la empresa; activar `run_with_build.sh` via `workflow_dispatch` o webhook cuando llegue una build
+10. **Fase 5 — Build** — `gradlew bundleRelease` (AAB) via Fastlane — pendiente keystore de firma
+11. **Fase 6 — Distribución** — Firebase App Distribution + notificación Slack — pendiente keystore + Firebase App ID
+12. **Agregar iOS (tests E2E reales):**
    - Crear `agents/explorer_ios.py` (Agente 0 iOS — XCUITest + WDA)
    - Caps XCUITest en `tests/wdio.conf.js` según `platform` del app_context
    - E2E iOS en paralelo con Android desde el mismo runner

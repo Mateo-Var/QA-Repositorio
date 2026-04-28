@@ -1,10 +1,12 @@
 const path = require('path');
 
-// ── Rutas del entorno ─────────────────────────────────────────────────────────
-const ADB_PATH = process.env.ANDROID_HOME ||
-  '/opt/homebrew/bin';
-const JAVA_HOME = process.env.JAVA_HOME ||
-  '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home';
+// ── Plataforma ────────────────────────────────────────────────────────────────
+const PLATFORM = (process.env.APP_PLATFORM || 'android').trim().toLowerCase();
+const IS_IOS   = PLATFORM === 'ios';
+
+// ── Rutas del entorno (Android) ───────────────────────────────────────────────
+const ADB_PATH  = process.env.ANDROID_HOME || '/opt/homebrew/bin';
+const JAVA_HOME = process.env.JAVA_HOME    || '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home';
 
 process.env.JAVA_HOME    = JAVA_HOME;
 process.env.ANDROID_HOME = ADB_PATH;
@@ -15,16 +17,25 @@ process.env.PATH         = `${ADB_PATH}:${JAVA_HOME}/bin:${process.env.PATH}`;
 process.env.APPIUM_HOME  = require('os').homedir() + '/appium-home';
 
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
-// APP_ID determina qué specs se cargan — un solo runner, múltiples apps
-const APP_ID       = (process.env.APP_ID             || 'tvnPass').trim();
-// USB ADB:  serial del dispositivo → R5CTB1W92KY (preferido, más estable)
-// WiFi ADB: IP:puerto → ej. 192.168.1.209:5555 (requiere depuración inalámbrica activa)
-const DEVICE       = (process.env.ANDROID_DEVICE_NAME || 'R5CTB1W92KY').trim();
-const APP_PACKAGE  = (process.env.ANDROID_APP_PACKAGE  || 'com.streann.tvnpass').trim();
-const APP_ACTIVITY = (process.env.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity').trim();
-const APPIUM_URL   = (process.env.APPIUM_SERVER_URL    || 'http://localhost:4723').trim();
+const APP_ID = (process.env.APP_ID || 'tvnPass').trim();
 
-const specsPath = path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/*.test.js`);
+// ── Android ───────────────────────────────────────────────────────────────────
+const ANDROID_DEVICE   = (process.env.ANDROID_DEVICE_NAME  || 'R5CTB1W92KY').trim();
+const APP_PACKAGE      = (process.env.ANDROID_APP_PACKAGE   || 'com.streann.tvnpass').trim();
+const APP_ACTIVITY     = (process.env.ANDROID_APP_ACTIVITY  || 'com.streann.tvnpass.MainActivity').trim();
+const ANDROID_APPIUM   = (process.env.APPIUM_SERVER_URL     || 'http://localhost:4723').trim();
+
+// ── iOS ───────────────────────────────────────────────────────────────────────
+const IOS_UDID      = (process.env.IOS_DEVICE_UDID    || '00008140-00045DCE3422801C').trim();
+const IOS_BUNDLE_ID = (process.env.IOS_BUNDLE_ID      || 'com.tvn-2.appletv').trim();
+const IOS_TEAM_ID   = (process.env.IOS_TEAM_ID        || '8KW4872JND').trim();
+const IOS_APPIUM    = (process.env.IOS_APPIUM_SERVER_URL || 'http://localhost:4724').trim();
+
+const APPIUM_URL = IS_IOS ? IOS_APPIUM : ANDROID_APPIUM;
+
+const specsPath = IS_IOS
+  ? path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/ios/*.test.js`)
+  : path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/*.test.js`);
 
 exports.config = {
   runner:   'local',
@@ -34,12 +45,21 @@ exports.config = {
   specs: [specsPath],
   maxInstances: 1,
 
-  capabilities: [{
+  capabilities: [IS_IOS ? {
+    platformName:                'iOS',
+    'appium:udid':               IOS_UDID,
+    'appium:deviceName':         'iPhone',
+    'appium:bundleId':           IOS_BUNDLE_ID,
+    'appium:automationName':     'XCUITest',
+    'appium:noReset':            true,
+    'appium:newCommandTimeout':  60,
+    'appium:xcodeOrgId':         IOS_TEAM_ID,
+    'appium:xcodeSigningId':     'Apple Development',
+    'appium:usePrebuiltWDA':     true,
+    'appium:waitForIdleTimeout': 0,
+  } : {
     platformName:                    'Android',
-    // udid es el identificador real para ADB (WiFi o USB)
-    // WiFi ADB:  192.168.1.50:5555
-    // USB ADB:   R5CTB1W92KY  (serial del dispositivo)
-    'appium:udid':                   DEVICE,
+    'appium:udid':                   ANDROID_DEVICE,
     'appium:deviceName':             'Android',
     'appium:appPackage':             APP_PACKAGE,
     'appium:appActivity':            APP_ACTIVITY,
@@ -101,8 +121,8 @@ exports.config = {
   },
 
   async before() {
-    const fs    = require('fs');
-    const cp    = require('child_process');
+    const fs = require('fs');
+    const cp = require('child_process');
 
     const videosDir = path.resolve(__dirname, '../reports', APP_ID, 'videos');
     [
@@ -113,17 +133,18 @@ exports.config = {
 
     await browser.setTimeout({ implicit: 0 });
 
-    // Grabación completa de pantalla via ADB screenrecord
-    const device  = process.env.ANDROID_DEVICE_NAME || DEVICE;
-    const runId   = process.env.QA_RUN_ID || Date.now().toString();
-    const remote  = `/sdcard/qa_run_${runId}.mp4`;
-    const local   = path.join(videosDir, `qa_run_${runId}.mp4`);
+    if (IS_IOS) return; // iOS no soporta adb screenrecord
+
+    // Grabación completa de pantalla via ADB screenrecord (solo Android)
+    const device = process.env.ANDROID_DEVICE_NAME || ANDROID_DEVICE;
+    const runId  = process.env.QA_RUN_ID || Date.now().toString();
+    const remote = `/sdcard/qa_run_${runId}.mp4`;
+    const local  = path.join(videosDir, `qa_run_${runId}.mp4`);
 
     global.__screenrecordRemote = remote;
     global.__screenrecordLocal  = local;
     global.__screenrecordDevice = device;
 
-    // Inicia grabación en background (max 3min por limitación de Android)
     global.__screenrecordProc = cp.spawn(
       'adb', ['-s', device, 'shell', 'screenrecord', '--time-limit', '180', remote],
       { detached: true, stdio: 'ignore' }
@@ -132,21 +153,20 @@ exports.config = {
   },
 
   async after() {
-    const cp = require('child_process');
+    if (IS_IOS) return;
+
+    const cp     = require('child_process');
     const device = global.__screenrecordDevice;
     const remote = global.__screenrecordRemote;
     const local  = global.__screenrecordLocal;
     if (!device || !remote) return;
 
-    // Detener grabación
     try {
       cp.execSync(`adb -s ${device} shell pkill -f screenrecord`, { stdio: 'ignore' });
     } catch (_) {}
 
-    // Esperar que el archivo se cierre
     await new Promise(r => setTimeout(r, 3000));
 
-    // Descargar video del dispositivo
     try {
       cp.execSync(`adb -s ${device} pull ${remote} ${local}`);
       cp.execSync(`adb -s ${device} shell rm ${remote}`, { stdio: 'ignore' });

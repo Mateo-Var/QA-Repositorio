@@ -1,4 +1,4 @@
-const { normalizarEstadoApp, dismissPromoPopupIfVisible, ensureAppInForeground } = require('../helpers/appState');
+const { normalizarEstadoApp } = require('../helpers/appState');
 
 // GOT-03: browser.execute necesita mockImplementation para distinguir comandos
 // GOT-04: getPageSource reemplazado por isExisting — los mocks usan $ + makeEl
@@ -16,8 +16,15 @@ function makeBrowser({ estado = 4 } = {}) {
       if (cmd === 'mobile: queryAppState') return estado;
       return undefined;
     }),
-    activateApp: jest.fn().mockResolvedValue(undefined),
-    pause:       jest.fn().mockResolvedValue(undefined),
+    activateApp:   jest.fn().mockResolvedValue(undefined),
+    pause:         jest.fn().mockResolvedValue(undefined),
+    getWindowSize: jest.fn().mockResolvedValue({ width: 1080, height: 2400 }),
+    action:        jest.fn().mockReturnValue({
+      move: jest.fn().mockReturnThis(),
+      down: jest.fn().mockReturnThis(),
+      up:   jest.fn().mockReturnThis(),
+      perform: jest.fn().mockResolvedValue(undefined),
+    }),
   };
 }
 
@@ -88,59 +95,35 @@ describe('normalizarEstadoApp', () => {
   });
 });
 
-describe('dismissPromoPopupIfVisible', () => {
-  test('hace click en OMITIR si está visible y retorna true', async () => {
-    const el = makeEl(true);
-    global.$ = jest.fn().mockResolvedValue(el);
-    const result = await dismissPromoPopupIfVisible();
-    expect(el.click).toHaveBeenCalled();
-    expect(result).toBe(true);
+describe('_manejarOnboarding (via normalizarEstadoApp)', () => {
+  test('acepta permiso de notificaciones y toca VER AHORA en última slide', async () => {
+    const elPermitr  = makeEl(true);
+    const elVerAhora = makeEl(true);
+    global.$ = jest.fn().mockImplementation(async (sel) => {
+      if (sel.includes('"Permitir"'))     return elPermitr;
+      if (sel.includes('"Programación"')) return makeEl(false);
+      if (sel.includes('"VER AHORA"'))    return elVerAhora;
+      return makeEl(false);
+    });
+    await normalizarEstadoApp();
+    expect(elPermitr.click).toHaveBeenCalled();
+    expect(elVerAhora.click).toHaveBeenCalled();
   });
 
-  test('no hace click si OMITIR no está visible y retorna false', async () => {
-    const el = makeEl(false);
-    global.$ = jest.fn().mockResolvedValue(el);
-    const result = await dismissPromoPopupIfVisible();
-    expect(el.click).not.toHaveBeenCalled();
-    expect(result).toBe(false);
+  test('hace swipes cuando VER AHORA no está visible aún', async () => {
+    global.$ = jest.fn().mockImplementation(async (sel) => {
+      if (sel.includes('"Permitir"'))     return makeEl(false);
+      if (sel.includes('"Programación"')) return makeEl(false);
+      if (sel.includes('"VER AHORA"'))    return makeEl(false);
+      return makeEl(false);
+    });
+    await normalizarEstadoApp();
+    expect(browser.action).toHaveBeenCalled();
   });
 
-  test('retorna false silenciosamente si $ lanza error', async () => {
-    global.$ = jest.fn().mockRejectedValue(new Error('error'));
-    const result = await dismissPromoPopupIfVisible();
-    expect(result).toBe(false);
-  });
-});
-
-describe('ensureAppInForeground', () => {
-  test('retorna true si getCurrentPackage coincide con APP_ID', async () => {
-    global.browser = {
-      ...makeBrowser(),
-      getCurrentPackage: jest.fn().mockResolvedValue('com.streann.tvnpass'),
-    };
-    const result = await ensureAppInForeground();
-    expect(result).toBe(true);
-  });
-
-  test('activa la app si getCurrentPackage devuelve otro paquete', async () => {
-    global.browser = {
-      ...makeBrowser(),
-      getCurrentPackage: jest.fn().mockResolvedValue('com.another.app'),
-    };
-    const result = await ensureAppInForeground();
-    expect(result).toBe(true);
-    const activateCalls = browser.execute.mock.calls.filter(c => c[0] === 'mobile: activateApp');
-    expect(activateCalls).toHaveLength(1);
-  });
-
-  test('retorna false silenciosamente si todo falla', async () => {
-    global.browser = {
-      execute:            jest.fn().mockRejectedValue(new Error('fail')),
-      activateApp:        jest.fn().mockRejectedValue(new Error('fail')),
-      getCurrentPackage:  jest.fn().mockRejectedValue(new Error('fail')),
-      pause:              jest.fn().mockResolvedValue(undefined),
-    };
-    const result = await ensureAppInForeground();
-    expect(result).toBe(false);
+  test('no falla si el onboarding lanza excepción', async () => {
+    global.$ = jest.fn().mockRejectedValue(new Error('session lost'));
+    global.browser = makeBrowser({ estado: 4 });
+    await expect(normalizarEstadoApp()).resolves.not.toThrow();
   });
 });

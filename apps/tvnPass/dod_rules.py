@@ -9,7 +9,7 @@ una entrada al CHANGELOG. Esto permite diagnosticar regresiones: si un DOD
 empieza a fallar, el historial revela si el timeout cambió recientemente.
 """
 
-VERSION = "3.0.2"
+VERSION = "3.1.1"
 
 CHANGELOG = [
     {
@@ -238,13 +238,85 @@ CHANGELOG = [
         "author": "santi",
         "changes": "Trigger CI — primer run desde Mac Mini como runner self-hosted.",
     },
+    {
+        "version": "3.0.3",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — fix python symlink → python3.11 en Mac Mini.",
+    },
+    {
+        "version": "3.0.4",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — fix PATH /opt/homebrew/bin en workflow para runner Mac Mini.",
+    },
+    {
+        "version": "3.0.5",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry con Samsung desbloqueado.",
+    },
+    {
+        "version": "3.0.6",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — gh CLI instalado, Samsung desbloqueado.",
+    },
+    {
+        "version": "3.0.7",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — UiAutomator2 instalado en ~/.appium global.",
+    },
+    {
+        "version": "3.0.8",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry.",
+    },
+    {
+        "version": "3.0.9",
+        "date": "2026-04-20",
+        "author": "santi",
+        "changes": "Trigger CI — retry 2.",
+    },
+    {
+        "version": "3.0.10",
+        "date": "2026-04-21",
+        "author": "santi",
+        "changes": "Trigger CI — validar pipeline Android + iOS en paralelo desde Mac Mini.",
+    },
+    {
+        "version": "3.0.11",
+        "date": "2026-04-21",
+        "author": "santi",
+        "changes": "Trigger CI — Samsung y iPhone conectados, validar paralelo.",
+    },
+    {
+        "version": "3.0.12",
+        "date": "2026-04-21",
+        "author": "santi",
+        "changes": "Fix: borrar cache Node.js corrompido tras mover runner.",
+    },
+    {
+        "version": "3.1.0",
+        "date": "2026-04-22",
+        "author": "santi",
+        "changes": "DOD-03 timeout 12s → 15s — red corporativa agrega latencia extra al buffer inicial del reproductor.",
+    },
+    {
+        "version": "3.1.1",
+        "date": "2026-04-22",
+        "author": "santi",
+        "changes": "Trigger CI — validar flujo completo APK install + onboarding + E2E.",
+    },
 ]
 
 # ── Timeouts por DOD ID (segundos) ────────────────────────────────────────────
 DOD_TIMEOUTS = {
     "DOD-01": 5,    # Login email → home screen
     "DOD-02": 6,    # Login SSO → home screen
-    "DOD-03": 12,   # Buffer inicial de video (físico necesita más margen que simulador)
+    "DOD-03": 15,   # Buffer inicial de video — aumentado a 15s por latencia en red corporativa
     "DOD-04": 3,    # Resultados de búsqueda (tab Buscar + query + red)
     "DOD-05": 3,    # Selector de perfiles cargado
     "DOD-06": 60,   # Onboarding completo

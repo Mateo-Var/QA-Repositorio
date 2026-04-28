@@ -3,7 +3,7 @@
 > Patrones aprendidos, errores encontrados y decisiones tomadas.
 > Objetivo: reducir el tiempo de arranque en cada sesión nueva.
 > No reemplaza CLAUDE.md — ese es el contrato del sistema. Este es el diario técnico.
-> Última actualización: 2026-04-14
+> Última actualización: 2026-04-23
 
 ---
 
@@ -147,6 +147,38 @@ result = json.loads(raw)
 ```
 **Archivos:** `agents/analyzer.py` y `agents/generator_executor.py`.
 
+### [DEC-16] Agent 1 output se persiste para reusar en build manual
+**Por qué:** Cuando llega un APK de Slack días después de que el PR fue abierto, el análisis de código ya ocurrió en Fase 0. Re-analizarlo sería trabajo duplicado y costo extra de tokens.
+**Solución:** `run_on_pr.sh` guarda el output de Agent 1 en `reports/{app_id}/runs/pr{N}_agent1.json`. `run_with_build.sh` lo lee si existe; si no, usa placeholder con suite completa.
+**Prioridad de resolución:** `--agent1-json` (externo) > archivo guardado del PR > placeholder.
+**Aplica a:** Cualquier trigger manual que llegue después de que Fase 0 ya corrió.
+
+### [DEC-17] Comentarios PR separados por plataforma con marcadores HTML invisibles
+**Por qué:** Android y iOS corren en paralelo. Sin marcadores, el segundo job en terminar sobreescribe el comentario del primero — se pierde información.
+**Solución:** Cada plataforma tiene su marcador (`<!-- QA-ANDROID -->`, `<!-- QA-IOS -->`). `post_pr_comment.py` busca el comentario con ese marcador y lo edita; si no existe, crea uno nuevo.
+**Regla:** Nunca usar `gh pr comment` directo — siempre pasar por `post_pr_comment.py` con `--platform`.
+
+### [DEC-18] bash 3.2 en macOS no soporta `${VAR^^}` para uppercase
+**Por qué:** macOS viene con bash 3.2 por licencia (GPL). El operador `^^` para convertir a mayúsculas llegó en bash 4.0. En CI macOS los jobs fallan con "bad substitution".
+**Solución:** `PLATFORM_UPPER=$(echo "$PLATFORM" | tr '[:lower:]' '[:upper:]')` — funciona en bash 3.2, zsh y cualquier POSIX shell.
+**Regla:** Nunca usar `${VAR^^}` o `${VAR,,}` en scripts que corren en macOS.
+
+### [DEC-19] Runner self-hosted debe ser arm64 nativo en Mac Mini
+**Por qué:** Si el binario del runner es x86_64 (Rosetta), los procesos hijo (Python, Node, Appium) también corren bajo Rosetta. Los wheels de pydantic arm64 instalados con `pip` son incompatibles → `ImportError` en runtime aunque la instalación parezca exitosa.
+**Síntoma:** `pydantic` falla con architecture mismatch aunque `pip show` muestre que está instalado.
+**Solución:** Reinstalar el runner con el tarball arm64 oficial (`actions-runner-osx-arm64-*.tar.gz`) usando `./config.sh --replace`.
+**Regla:** Verificar arquitectura del runner con `file ./bin/Runner.Listener` — debe decir `arm64`, no `x86_64`.
+
+### [DEC-20] Python 3.9 no soporta `X | Y` para union types sin `from __future__`
+**Por qué:** La sintaxis `set[str] | None` para type hints llegó en Python 3.10. En Python 3.9 (macOS default en runners antiguos) lanza `TypeError` en tiempo de import.
+**Solución:** Agregar `from __future__ import annotations` al inicio del archivo. Esto hace que todos los type hints se evalúen como strings (lazy), compatible con 3.9.
+**Archivos afectados:** `agents/analyzer.py` y cualquier agente que use union types modernos.
+
+### [DEC-21] `--agent1-json` como puente hacia repo externo
+**Por qué:** El repo de la empresa tiene su propio CI. Cuando un dev abre un PR ahí, queremos que Agent 1 analice ese código — pero no queremos clonar ni correr lógica QA en el repo de la empresa.
+**Estrategia:** El CI del repo externo corre Agent 1 (o un script equivalente) y escribe un JSON. Ese JSON se pasa a `run_with_build.sh --agent1-json <ruta>`. El pipeline QA lo consume directamente sin re-analizar.
+**Estado:** Arquitectura lista. Integración real pendiente de acceso al repo de la empresa.
+
 ---
 
 ## Patrones que funcionan
@@ -167,7 +199,8 @@ with patch("agents.analyzer.anthropic.Anthropic", return_value=mock_client):
 
 ### [PAT-03] `normalizarEstadoApp()` como punto de entrada universal
 **Por qué:** La app puede estar en 5 estados distintos entre tests (background, PiP, fullscreen, home, no corriendo). Esta función normaliza todos a home screen antes de cada test, eliminando el 80% de los flaky tests de estado.
-**Regla:** Llamarla siempre en el `it('01 - La app carga...')` y cuando hay duda del estado.
+**Incluye `_manejarOnboarding()`:** En instalación limpia aparece pantalla de bienvenida. Flujo: permiso notificaciones ("Permitir") → 2 swipes derecha→izquierda en carrusel → tap "VER AHORA". Se llama automáticamente dentro de `normalizarEstadoApp()`.
+**Regla:** Llamarla siempre en el `before()` de cada suite y cuando hay duda del estado.
 
 ### [PAT-04] Datos mock para el generador de comentarios
 **Ubicación:** `scripts/test_data/`
@@ -236,7 +269,27 @@ browser.execute.mockImplementation(async (cmd) => {
 
 | Dispositivo | Serial ADB | Uso |
 |-------------|-----------|-----|
-| Samsung Android (físico) | `R5CTB1W92KY` (USB) · `192.168.1.129:5555` (WiFi ADB — usar en CI) | TVN Pass Android E2E |
+| Samsung Android (físico) | `R5CTB1W92KY` (USB) · `192.168.1.129:5555` (WiFi ADB) | TVN Pass Android E2E |
+
+### [GOT-07] Secrets de GitHub Actions pueden incluir `\n` al expandirse en bash
+**Por qué:** GitHub agrega un salto de línea al final de algunos secrets al inyectarlos como variables de entorno. Esto rompe globs (`ls *.apk`) y specs de puerto en `lsof`.
+**Solución:** Siempre hacer `trim` al usar secrets en variables de shell: `VAR=$(echo "${SECRET}" | tr -d '[:space:]')`.
+**Afecta:** `ANDROID_APP_PACKAGE`, `APPIUM_SERVER_URL`, cualquier secret usado en comandos de sistema.
+
+### [GOT-08] `adb -s <serial>` falla si el dispositivo cambió de USB a WiFi o viceversa
+**Por qué:** El secret `ANDROID_DEVICE_NAME` puede tener la IP WiFi pero el device estar conectado por USB (o al revés). `adb -s IP:puerto` no encuentra el device USB.
+**Solución:** Después de intentar `adb connect` (para WiFi), verificar con `adb -s $SERIAL get-state`. Si no responde, usar `adb devices | awk '/\tdevice$/{print $1; exit}'` para auto-detectar el primer device disponible.
+**Implementado en:** `run_on_pr.sh` bloque 3c.
+
+### [GOT-09] APK de builds nombrado con package completo como prefijo
+**Formato:** `com.empresa.app-version-build.apk` (ej: `com.streann.tvnpass-5.0.18-C5.2.11.apk`)
+**Convención aplicada a todas las apps** — el mismo CI que construye la APK la envía a Slack con este nombre.
+**Cómo detectar:** `ls ~/Downloads/com.empresa.app*.apk` — el package completo como prefijo evita falsos positivos entre apps del mismo vendor.
+
+### [GOT-10] DOD-03 puede fallar por WiFi lento sin ser bug de la app
+**Por qué:** El buffer inicial del reproductor live depende de la red. En red corporativa con latencia alta, 12s puede ser insuficiente aunque la app funcione correctamente.
+**Solución aplicada:** Timeout aumentado a 15s en `dod_rules.py` (v3.1.0).
+**Regla:** Si DOD-03 falla en CI pero el video carga manualmente, verificar latencia de red antes de reportar como bug.
 
 ---
 

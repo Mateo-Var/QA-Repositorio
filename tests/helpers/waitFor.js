@@ -13,4 +13,15 @@ async function waitFor(conditionFn, timeoutMs, intervalMs, errorMsg) {
   throw new Error(errorMsg || `Timeout esperando condición (${timeoutMs}ms)`);
 }
 
-module.exports = { waitFor };
+async function waitForElement(selector, timeoutMs = 5000, intervalMs = 500) {
+  return waitFor(
+    async () => {
+      try { return await $(selector).isExisting(); } catch (_) { return false; }
+    },
+    timeoutMs,
+    intervalMs,
+    `Elemento no encontrado: ${selector} (${timeoutMs}ms)`
+  );
+}
+
+module.exports = { waitFor, waitForElement };
