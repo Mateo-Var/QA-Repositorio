@@ -31,7 +31,7 @@ async function _manejarOnboarding() {
 
   try {
     // Paso 1 — permiso de notificaciones (diálogo del sistema Android)
-    await browser.pause(1500);
+    await browser.pause(800);
     const permitir = await $('android=new UiSelector().textContains("Permitir")');
     if (await permitir.isExisting()) {
       await permitir.click();
@@ -72,7 +72,7 @@ async function _manejarOnboarding() {
     const btn = await $('android=new UiSelector().text("VER AHORA")');
     if (await btn.isExisting()) {
       await btn.click();
-      await browser.pause(2500);
+      await browser.pause(1200);
       console.log('[onboarding] ✓ onboarding completado');
     }
   } catch (_) {}
@@ -100,7 +100,7 @@ async function normalizarEstadoApp() {
         await browser.activateApp(APP_ID);
       }
     }
-    await browser.pause(3000);
+    await browser.pause(800);
   }
 
   await _manejarOnboarding();
@@ -116,7 +116,7 @@ async function normalizarEstadoApp() {
     const inicio = await $(selector);
     if (await inicio.isExisting()) {
       await inicio.click();
-      await browser.pause(2000);
+      await browser.pause(1000);
       console.log('[estado] ✓ tap en Inicio ejecutado');
       return;
     }
@@ -127,16 +127,16 @@ async function normalizarEstadoApp() {
     console.log('[estado] Inicio no visible — usando tecla HOME del sistema...');
     try {
       await browser.execute('mobile: pressKey', { keycode: 3 });
-      await browser.pause(1500);
+      await browser.pause(800);
       await browser.execute('mobile: activateApp', { appId: APP_ID });
-      await browser.pause(2000);
+      await browser.pause(1000);
     } catch (_) {}
 
     try {
       const inicio = await $('android=new UiSelector().text("Inicio")');
       if (await inicio.isExisting()) {
         await inicio.click();
-        await browser.pause(1500);
+        await browser.pause(800);
         console.log('[estado] ✓ tap en Inicio post-HOME ejecutado');
       }
     } catch (_) {}
@@ -179,12 +179,12 @@ async function ensureAppInForeground() {
   } catch (_) {}
   try {
     await browser.execute('mobile: activateApp', { appId: APP_ID });
-    await browser.pause(2000);
+    await browser.pause(1000);
     return true;
   } catch (_) {}
   try {
     await browser.activateApp(APP_ID);
-    await browser.pause(2000);
+    await browser.pause(1000);
     return true;
   } catch (_) {}
   console.log('[estado] ADVERTENCIA: no se pudo confirmar app en foreground — continuando');

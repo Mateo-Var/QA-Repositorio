@@ -48,7 +48,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     let playerVisible = false;
     for (let i = 0; i < 5 && !playerVisible; i++) {
       playerVisible = await pageContains('Mostrar controles del reproductor');
-      if (!playerVisible) await browser.pause(1200);
+      if (!playerVisible) await browser.pause(600);
     }
     expect(playerVisible).toBe(true);
   });
@@ -66,7 +66,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     // Ayer
     const ayer = await clickTab('Ayer');
     if (ayer) {
-      await browser.pause(1000);
+      await browser.pause(500);
       await dismissPromoPopupIfVisible();
       const ayerVisible = await pageContainsAny(['Ayer', 'ayer']);
       expect(ayerVisible).toBe(true);
@@ -77,7 +77,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     // Anteayer
     const anteayer = await clickTab('Anteayer');
     if (anteayer) {
-      await browser.pause(1000);
+      await browser.pause(500);
       await dismissPromoPopupIfVisible();
       const anteayerVisible = await pageContainsAny(['Anteayer', 'anteayer']);
       expect(anteayerVisible).toBe(true);
@@ -88,7 +88,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     // Mañana
     const manana = await clickTab('Mañana');
     if (manana) {
-      await browser.pause(1000);
+      await browser.pause(500);
       await dismissPromoPopupIfVisible();
       const mananaVisible = await pageContainsAny(['Mañana', 'mañana', 'Manana']);
       expect(mananaVisible).toBe(true);
@@ -99,7 +99,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     // Hoy — siempre debe existir (es el estado base)
     const hoy = await clickTab('Hoy');
     expect(hoy).toBe(true);
-    await browser.pause(1000);
+    await browser.pause(500);
     const hoyVisible = await pageContainsAny(['Hoy', 'hoy', 'HOY']);
     expect(hoyVisible).toBe(true);
   });
@@ -150,14 +150,14 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
 
     // Cambiar al primer canal disponible
     await disponibles[0].el.click();
-    await browser.pause(2000);
+    await browser.pause(500);
     await dismissPromoPopupIfVisible();
 
     const geoError = await pageContainsAny(GEO_ERROR_SIGNALS);
     if (geoError) {
       console.log('[hero_epg] Canal con georestrición — volviendo');
       try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (_) {}
-      await browser.pause(800);
+      await browser.pause(400);
     }
 
     const playerSigueActivo = await pageContains('Mostrar controles del reproductor');
@@ -201,10 +201,10 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
     const der  = Math.floor(width * 0.95);
 
     // Dos swipes largos a la derecha y dos a la izquierda en el Hero EPG
-    await swipeAdb(izq, carouselY, der, carouselY, 500); await browser.pause(800);
-    await swipeAdb(izq, carouselY, der, carouselY, 500); await browser.pause(800);
-    await swipeAdb(der, carouselY, izq, carouselY, 500); await browser.pause(800);
-    await swipeAdb(der, carouselY, izq, carouselY, 500); await browser.pause(800);
+    await swipeAdb(izq, carouselY, der, carouselY, 500); await browser.pause(400);
+    await swipeAdb(izq, carouselY, der, carouselY, 500); await browser.pause(400);
+    await swipeAdb(der, carouselY, izq, carouselY, 500); await browser.pause(400);
+    await swipeAdb(der, carouselY, izq, carouselY, 500); await browser.pause(400);
 
     const playerActivo = await pageContains('Mostrar controles del reproductor');
     expect(playerActivo).toBe(true);
@@ -213,7 +213,7 @@ describe('Hero EPG — Navegación y Reproductor Live — tvnPass Android', () =
   // ── 5. Sin pantalla de error ────────────────────────────────────────────────
 
   it('hero_epg_sin_error_reproduccion', async () => {
-    await browser.pause(1500);
+    await browser.pause(700);
     const hayError = await pageContainsAny(['Error', 'error', 'Fallo', 'failed']);
     expect(hayError).toBe(false);
   });

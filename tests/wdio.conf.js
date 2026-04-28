@@ -77,7 +77,7 @@ exports.config = {
 
   logLevel:               'warn',
   bail:                   0,
-  waitforTimeout:         10000,
+  waitforTimeout:         5000,
   connectionRetryTimeout: 120000,  // 120s para session creation (UiAutomator2 tarda ~74s en arrancar)
   connectionRetryCount:   3,
 

@@ -91,7 +91,7 @@ describe('normalizarEstadoApp', () => {
     const b = makeBrowser({ estado: 1 });
     global.browser = b;
     await normalizarEstadoApp();
-    expect(b.pause).toHaveBeenCalledWith(3000);
+    expect(b.pause).toHaveBeenCalledWith(800);
   });
 });
 

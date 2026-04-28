@@ -34,7 +34,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
 
   it('explorar_tab_navegacion_desde_inicio', async () => {
     await clickElement('~Explorar');
-    await browser.pause(1500);
+    await browser.pause(700);
     await dismissPromoPopupIfVisible();
     const explorarVisible = await pageContains('Explorar');
     expect(explorarVisible).toBe(true);
@@ -47,7 +47,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     let visible = false;
     for (let i = 0; i < 5 && !visible; i++) {
       visible = await pageContainsAny(EN_VIVO_VARIANTS);
-      if (!visible) await browser.pause(1000);
+      if (!visible) await browser.pause(500);
     }
     expect(visible).toBe(true);
   });
@@ -67,7 +67,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     }
     if (!clicked) throw new Error('No se encontró ningún botón TVN EN VIVO / EN VIVO en Explorar');
 
-    await browser.pause(2000);
+    await browser.pause(500);
     await dismissPromoPopupIfVisible();
 
     // Presionar VER AHORA solo si está activo/visible
@@ -79,7 +79,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
         // Intentar variantes
         try { await waitAndClick('Ver ahora', 2000); } catch (_2) {}
       }
-      await browser.pause(2500);
+      await browser.pause(600);
       await dismissPromoPopupIfVisible();
     } else {
       console.log('[explorar] VER AHORA no visible — continuando sin presionarlo');
@@ -89,7 +89,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     let playerActivo = false;
     for (let i = 0; i < 5 && !playerActivo; i++) {
       playerActivo = await pageContains('Mostrar controles del reproductor');
-      if (!playerActivo) await browser.pause(1200);
+      if (!playerActivo) await browser.pause(600);
     }
     expect(playerActivo).toBe(true);
   });
@@ -103,7 +103,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     for (let intento = 0; intento < 3 && !programacionDisponible; intento++) {
       // Intento 1: tap directo en Explorar
       try { await clickElement('~Explorar'); } catch (_) {}
-      await browser.pause(1500);
+      await browser.pause(700);
       await dismissPromoPopupIfVisible();
 
       programacionDisponible = await pageContainsAny(['PROGRAMACIÓN', 'Programación']);
@@ -112,7 +112,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
         console.log(`[explorar] PROGRAMACIÓN no visible (intento ${intento + 1}) — presionando BACK y reintentando`);
         // BACK nativo para salir de pantalla intermedias
         try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (_) {}
-        await browser.pause(1000);
+        await browser.pause(500);
       }
     }
 
@@ -120,7 +120,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
 
     // Ya estamos en Explorar — entrar a PROGRAMACIÓN
     await waitAndClick('PROGRAMACIÓN', 8000);
-    await browser.pause(2000);
+    await browser.pause(500);
     await dismissPromoPopupIfVisible();
 
     // Dentro de PROGRAMACIÓN esperamos ver el player o la guía de canales
@@ -142,7 +142,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     let playerVisible = false;
     for (let i = 0; i < 5 && !playerVisible; i++) {
       playerVisible = await pageContains('Mostrar controles del reproductor');
-      if (!playerVisible) await browser.pause(1200);
+      if (!playerVisible) await browser.pause(600);
     }
     expect(playerVisible).toBe(true);
   });
@@ -156,7 +156,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
   it('explorar_tap_player_muestra_controles', async () => {
     // Al tocar el player se muestran los controles y la app no crashea
     await clickElement('~Mostrar controles del reproductor');
-    await browser.pause(800);
+    await browser.pause(400);
     const enVivoVisible = await pageContainsAny(EN_VIVO_VARIANTS.concat(['PROGRAMACIÓN', 'Programación']));
     expect(enVivoVisible).toBe(true);
   });
@@ -178,7 +178,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
     if (canales.length < 2) {
       const { width, height } = await browser.getWindowSize();
       await swipeAdb(width / 2, height * 0.75, width / 2, height * 0.45, 400);
-      await browser.pause(800);
+      await browser.pause(400);
       canales = await recolectarCanales();
     }
 
@@ -198,7 +198,7 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
 
     // Hay 2+ canales — hacer tap en el segundo (el primero es el activo)
     await canales[1].click();
-    await browser.pause(2500);
+    await browser.pause(600);
 
     const playerSigueActivo = await pageContains('Mostrar controles del reproductor');
     expect(playerSigueActivo).toBe(true);
@@ -213,10 +213,10 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
 
     // Swipe 1 — largo hacia la izquierda
     await swipeAdb(startX, carouselY, endX, carouselY, 500);
-    await browser.pause(1000);
+    await browser.pause(500);
     // Swipe 2 — largo hacia la derecha
     await swipeAdb(endX, carouselY, startX, carouselY, 500);
-    await browser.pause(1000);
+    await browser.pause(500);
 
     const playerActivo = await pageContains('Mostrar controles del reproductor');
     expect(playerActivo).toBe(true);
@@ -227,10 +227,10 @@ describe('Explorar — TVN EN VIVO / PROGRAMACIÓN — tvnPass Android', () => {
   it('explorar_volver_al_inicio', async () => {
     try {
       await browser.execute('mobile: pressKey', { keycode: 4 }); // BACK
-      await browser.pause(800);
+      await browser.pause(400);
     } catch (_) {}
     await clickElement('~Inicio');
-    await browser.pause(1500);
+    await browser.pause(700);
     const inicioVisible = await pageContains('Programación');
     expect(inicioVisible).toBe(true);
   });
