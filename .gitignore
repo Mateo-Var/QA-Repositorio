@@ -181,3 +181,5 @@ videos/
 *.apk
 *.app
 *.dSYM
+# excepción para APK de simulación
+!test-assets/demo.apk

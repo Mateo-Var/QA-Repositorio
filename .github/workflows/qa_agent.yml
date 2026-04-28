@@ -35,7 +35,7 @@ jobs:
       - name: Sugerencia Claude
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          APP_ID:            ${{ secrets.APP_ID || 'tvnPass' }}
+          APP_ID:            tvnPass
           GH_TOKEN:          ${{ github.token }}
         run: |
           chmod +x scripts/run_suggestion.sh
@@ -95,7 +95,7 @@ jobs:
           ANDROID_APP_PACKAGE:   ${{ secrets.ANDROID_APP_PACKAGE || 'com.streann.tvnpass' }}
           ANDROID_APP_ACTIVITY:  ${{ secrets.ANDROID_APP_ACTIVITY || 'com.streann.tvnpass.MainActivity' }}
           APPIUM_SERVER_URL:     ${{ secrets.APPIUM_SERVER_URL || 'http://localhost:4723' }}
-          APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
+          APP_ID:                tvnPass
           ANTHROPIC_API_KEY:     ${{ secrets.ANTHROPIC_API_KEY }}
           GH_TOKEN:              ${{ github.token }}
           GITHUB_SERVER_URL:     ${{ github.server_url }}
@@ -149,7 +149,7 @@ jobs:
         shell: bash
         env:
           APP_PLATFORM:          ios
-          APP_ID:                ${{ secrets.APP_ID || 'tvnPass' }}
+          APP_ID:                tvnPass
           IOS_DEVICE_UDID:       ${{ secrets.IOS_DEVICE_UDID || '00008140-00045DCE3422801C' }}
           IOS_BUNDLE_ID:         ${{ secrets.IOS_BUNDLE_ID || 'com.tvn-2.appletv' }}
           IOS_TEAM_ID:           ${{ secrets.IOS_TEAM_ID || '8KW4872JND' }}
