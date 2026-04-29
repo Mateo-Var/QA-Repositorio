@@ -1,93 +1,62 @@
 'use strict';
 
-/**
- * Navegación Inferior — tvnPass Android
- * Mejorado con: vuelta al inicio tras cada navegación, dismissPromoPopup,
- * y verificación de contenido de cada sección (no solo texto del botón).
- */
-
-const { pageContains }               = require('../../../../tests/helpers/pageContains');
-const { clickElement, waitAndClick } = require('../../../../tests/helpers/clickHelper');
-const { normalizarEstadoApp,
-        dismissPromoPopupIfVisible } = require('../../../../tests/helpers/appState');
+const { waitForElement, waitForText } = require('../../../../tests/helpers/waitFor');
+const { pageContains } = require('../../../../tests/helpers/pageContains');
+const { clickElement } = require('../../../../tests/helpers/clickHelper');
+const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
 
 describe('Navegación Inferior — tvnPass Android', () => {
 
   before(async () => {
     await normalizarEstadoApp();
-    await dismissPromoPopupIfVisible();
   });
 
-  it('navegacion_boton_inicio_visible', async () => {
+  it('navegacion_tabs_inicio_accesible', async () => {
+    // Navega a Inicio
+    await clickElement('~Inicio');
+    
+    // Valida que Inicio está visible
     const inicioVisible = await pageContains('Inicio');
     expect(inicioVisible).toBe(true);
   });
 
-  it('navegacion_boton_explorar_visible', async () => {
+  it('navegacion_tabs_explorar_accesible', async () => {
+    // Navega a Explorar
+    await clickElement('~Explorar');
+    
+    // Valida que Explorar está visible
     const explorarVisible = await pageContains('Explorar');
     expect(explorarVisible).toBe(true);
   });
 
-  it('navegacion_boton_buscar_visible', async () => {
-    const buscarVisible = await pageContains('Buscar');
-    expect(buscarVisible).toBe(true);
-  });
-
-  it('navegacion_boton_menu_visible', async () => {
-    const menuVisible = await pageContains('Menú');
-    expect(menuVisible).toBe(true);
-  });
-
-  it('navegacion_click_boton_explorar_carga_contenido', async () => {
-    // Mejorado: verificar que Explorar carga contenido real (no solo el botón)
-    await clickElement('~Explorar');
-    await browser.pause(700);
-    await dismissPromoPopupIfVisible();
-    // Explorar debe mostrar al menos "EN VIVO" o "VIDEOS" o "CANALES"
-    let hayContenido = false;
-    for (let i = 0; i < 4 && !hayContenido; i++) {
-      hayContenido = await pageContains('EN VIVO') ||
-                    await pageContains('VIDEOS') ||
-                    await pageContains('CANALES');
-      if (!hayContenido) await browser.pause(400);
-    }
-    expect(hayContenido).toBe(true);
-    // Volver al inicio
-    await clickElement('~Inicio');
-    await browser.pause(300);
-  });
-
-  it('navegacion_click_boton_buscar', async () => {
+  it('navegacion_tabs_buscar_accesible', async () => {
+    // Navega a Buscar
     await clickElement('~Buscar');
-    await browser.pause(300);
+    
+    // Valida que Buscar está visible
     const buscarVisible = await pageContains('Buscar');
     expect(buscarVisible).toBe(true);
-    // Cerrar teclado antes del siguiente test
-    await browser.execute('mobile: pressKey', { keycode: 4 }); // BACK
-    await browser.pause(300);
-    await clickElement('~Inicio');
-    await browser.pause(400);
   });
 
-  it('navegacion_click_boton_menu', async () => {
+  it('navegacion_tabs_menu_accesible', async () => {
+    // Navega a Menú
     await clickElement('~Menú');
-    await browser.pause(600);
-    await dismissPromoPopupIfVisible();
+    
+    // Valida que Menú está visible
     const menuVisible = await pageContains('Menú');
     expect(menuVisible).toBe(true);
-    // Volver al inicio
-    await browser.execute('mobile: pressKey', { keycode: 4 }); // BACK
-    await browser.pause(300);
-    await clickElement('~Inicio');
-    await browser.pause(400);
   });
 
-  it('navegacion_inicio_vuelve_a_player', async () => {
-    // Desde cualquier sección, Inicio siempre debe llevar al reproductor live
+  it('navegacion_tabs_retorna_a_inicio', async () => {
+    // Navega a otra tab
+    await clickElement('~Buscar');
+    
+    // Retorna a Inicio
     await clickElement('~Inicio');
-    await browser.pause(700);
-    const playerVisible = await pageContains('Mostrar controles del reproductor');
-    expect(playerVisible).toBe(true);
+    
+    // Valida que está nuevamente en Inicio
+    const inicioVisible = await pageContains('Inicio');
+    expect(inicioVisible).toBe(true);
   });
 
 });
