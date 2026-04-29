@@ -7,9 +7,26 @@ const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
 
 describe('Búsqueda — tvnPass Android', () => {
 
-  before(async () => {
+  // beforeEach garantiza estado limpio: home screen + bottom bar visible
+  beforeEach(async () => {
     await normalizarEstadoApp();
+    await clickElement('~Inicio');
+    await browser.pause(600);
   });
+
+  async function irABuscarYEscribir(query) {
+    await clickElement('~Buscar');
+    await browser.pause(800);
+    // Tap directo en el centro del EditText (bounds fijos: [151,145][1039,278])
+    await browser.action('pointer')
+      .move({ x: 595, y: 210 })
+      .down().up()
+      .perform();
+    await browser.pause(600);
+    // Escribir con keys (campo ya activo)
+    await browser.keys(query.split(''));
+    await browser.pause(1500);
+  }
 
   it('busqueda_tab_buscar_navegable', async () => {
     await clickElement('~Buscar');
@@ -19,40 +36,21 @@ describe('Búsqueda — tvnPass Android', () => {
 
   it('busqueda_query_valido_muestra_resultados', async () => {
     // DOD-04: Búsqueda con query válido muestra resultados en 2s
-    await clickElement('~Buscar');
-
-    // Activar campo y escribir query
-    await clickElement('~Ingresa tu búsqueda');
-    await browser.keys(['n','o','t','i','c','i','a','s']);
-
-    // Resultados deben aparecer sin necesidad de confirmar (autocompletado)
+    await irABuscarYEscribir('noticias');
     const hayResultados = await pageContains('Mesa de Periodistas');
     expect(hayResultados).toBe(true);
   });
 
   it('busqueda_click_show_navega_a_detalle', async () => {
-    // Desde resultados, tocar un show navega a su detalle/episodios
-    await clickElement('~Buscar');
-    await clickElement('~Ingresa tu búsqueda');
-    await browser.keys(['n','o','t','i','c','i','a','s']);
-
-    // Esperar que aparezcan resultados
+    await irABuscarYEscribir('noticias');
     await waitForElement('android=new UiSelector().descriptionContains("Mesa de Periodistas")');
-
-    // Tocar el show
     await clickElement('android=new UiSelector().descriptionContains("Mesa de Periodistas")');
-
-    // Validar que llegamos al detalle del show
     const enDetalle = await pageContains('Mesa de Periodistas');
     expect(enDetalle).toBe(true);
   });
 
   it('busqueda_query_muestra_multiples_resultados', async () => {
-    // Validar que la búsqueda retorna más de un resultado
-    await clickElement('~Buscar');
-    await clickElement('~Ingresa tu búsqueda');
-    await browser.keys(['n','o','t','i','c','i','a','s']);
-
+    await irABuscarYEscribir('noticias');
     const resultado1 = await pageContains('Mesa de Periodistas');
     const resultado2 = await pageContains('Mundo Verde');
     expect(resultado1).toBe(true);
