@@ -4,17 +4,19 @@ const { pageContains } = require('../../../../tests/helpers/pageContains');
 const { clickElement } = require('../../../../tests/helpers/clickHelper');
 const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
 
+// Navega a home y abre los controles del player live para ver el EPG
 async function irAlPlayerConControles() {
+  // Reset agresivo: salir de cualquier fullscreen antes de normalizar
+  for (let i = 0; i < 3; i++) {
+    try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (_) {}
+    await browser.pause(300);
+  }
   await normalizarEstadoApp();
   await clickElement('~Inicio');
+  await browser.pause(1500);
+  // Abrir controles del reproductor live — muestra EPG con tabs de días
+  await clickElement('~Mostrar controles del reproductor');
   await browser.pause(800);
-  // Tocar el área del player (cuarto superior de pantalla) para mostrar controles EPG
-  const { width, height } = await browser.getWindowSize();
-  await browser.action('pointer')
-    .move({ x: Math.floor(width / 2), y: Math.floor(height * 0.20) })
-    .down().up()
-    .perform();
-  await browser.pause(500);
 }
 
 describe('Programación EPG — tvnPass Android', () => {
