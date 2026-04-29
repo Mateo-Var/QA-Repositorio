@@ -29,9 +29,59 @@ El Explorer encontró que la app abre directamente al **reproductor en vivo** (`
 |-------|-------------|------------|---------------------|
 | Reproductor Live | Señal en vivo cargada, buffer completado | DOD-03 | en_vivo (launch) |
 | Navegación tabs | Cambio entre Inicio, Explorar, Buscar, Menú | — | en_vivo (launch) |
-| Búsqueda | Click en tab Buscar, query, resultados | DOD-04 | desde en_vivo |
+| Búsqueda con query | Escribir texto → resultados → click show | DOD-04 | desde en_vivo |
 | Programación | Navegar Anteayer/Ayer/Hoy/Mañana | — | en_vivo (launch) |
 | Logout | Via tab Menú → opción de sesión | DOD-08 | desde en_vivo → Menú |
+
+---
+
+## Flujo de Búsqueda — Guía técnica completa
+
+### Pantalla Buscar (pantalla vacía)
+- **Activar:** `await clickElement('~Buscar');`
+- **Campo de texto:** `EditText` con placeholder `text='Buscar...'` en bounds `[151,145][1039,278]`
+- **Selector del wrapper:** `~Ingresa tu búsqueda` (ViewGroup clickable que envuelve el EditText)
+- **Indicador visual:** TextView `'Ingresa tu búsqueda'` visible cuando no hay query
+
+### Escribir un query de búsqueda
+```javascript
+// Paso 1: navegar a Buscar
+await clickElement('~Buscar');
+
+// Paso 2: activar campo de texto (tocar el wrapper o el EditText directamente)
+await clickElement('~Ingresa tu búsqueda');
+
+// Paso 3: escribir con browser.keys (NO usar sendKeys)
+await browser.keys(['n','o','t','i','c','i','a','s']);
+
+// Paso 4: validar que aparecieron resultados
+const hayResultados = await pageContains('Mesa de Periodistas');
+expect(hayResultados).toBe(true);
+```
+
+### Pantalla de Resultados
+- Cada resultado es un `ViewGroup` clickable con `content-desc = 'Título del Show, Descripción'`
+- **Pattern de selector:** `android=new UiSelector().descriptionContains("Título")`
+- **Alternativa:** `~Título del Show, Descripción completa`
+
+### Navegar a un Show desde resultados
+```javascript
+// Click en un show por título parcial (más robusto que exacto)
+await clickElement('android=new UiSelector().descriptionContains("Mesa de Periodistas")');
+
+// Validar que llegamos al detalle del show
+const enDetalle = await pageContains('Mesa de Periodistas');
+expect(enDetalle).toBe(true);
+```
+
+### Shows conocidos (query "noticias")
+| Selector | Content-desc parcial |
+|----------|---------------------|
+| `descriptionContains("Especial de Fin")` | Especial de Fin de Año de TVN Noticias 2024 |
+| `descriptionContains("Contenido Exclusivo")` | Contenido Exclusivo, con noticias... |
+| `descriptionContains("Mesa de Periodistas")` | Mesa de Periodistas, Entérate junto a... |
+| `descriptionContains("Mundo Verde")` | Mundo Verde, Dale un vistazo... |
+| `descriptionContains("TVMAX Deportes")` | TVMAX Deportes, La mejor información... |
 
 ## Flujos NO testeables sin configuración adicional
 

@@ -3,203 +3,225 @@
   "platform": "android",
   "package": "com.streann.tvnpass",
   "activity": "com.streann.tvnpass.MainActivity",
-  "device": "192.168.1.129:5555",
-  "explored_at": "2026-04-14T16:17:50.648068+00:00",
+  "device": "fy9tgmv4kbtox4mj",
+  "explored_at": "2026-04-29T13:21:52.873919+00:00",
   "version": "1.0.0",
   "screens": {
-    "en_vivo": {
+    "app_launch": {
       "trigger": "app_launch",
       "depth": 0,
+      "elements": [
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "¿Permitir que TVN Pass te envíe notificaciones?",
+          "resource": "com.android.permissioncontroller:id/permission_message",
+          "clickable": false
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "Permitir",
+          "resource": "com.android.permissioncontroller:id/permission_allow_button",
+          "clickable": true
+        },
+        {
+          "type": "Button",
+          "class": "android.widget.Button",
+          "name": "No permitir",
+          "resource": "com.android.permissioncontroller:id/permission_deny_button",
+          "clickable": true
+        }
+      ]
+    },
+    "home_en_vivo": {
+      "trigger": "app_launch or tap:Inicio",
+      "depth": 1,
+      "description": "Pantalla principal — reproductor en vivo + EPG + contenido recomendado",
       "elements": [
         {
           "type": "FrameLayout",
           "class": "android.widget.FrameLayout",
           "name": "Mostrar controles del reproductor",
           "resource": "com.streann.tvnpass:id/player_view",
-          "clickable": true
+          "clickable": true,
+          "selector": "~Mostrar controles del reproductor"
         },
         {
           "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "Anteayer",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "Ayer",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "Hoy",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "Mañana",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "PROGRAMACIÓN ANTERIOR",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
           "name": "EN VIVO",
-          "resource": "null",
-          "clickable": true
+          "clickable": true,
+          "selector": "~EN VIVO"
         },
         {
           "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "SIN PROGRAMACIÓN, A CONTINUACIÓN: TVN NOTICIAS EDICIÓN ESTELAR",
-          "resource": "null",
-          "clickable": false
+          "name": "Anteayer",
+          "clickable": true,
+          "selector": "~Anteayer"
         },
         {
           "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "SIN PROGRAMACIÓN, A CONTINUACIÓN: IV JUEGOS SURAMERICANOS DE LA JUVENTUD 2026",
-          "resource": "null",
-          "clickable": false
+          "name": "Ayer",
+          "clickable": true,
+          "selector": "~Ayer"
         },
         {
           "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "EN VIVO, 09:30 - 12:00 (2H 30M), Jelou Break con Amanda Díaz y Oscar Ruíz",
-          "resource": "null",
-          "clickable": true
+          "name": "Hoy",
+          "clickable": true,
+          "selector": "~Hoy"
         },
         {
           "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "VER TODO",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "ViewGroup",
-          "class": "android.view.ViewGroup",
-          "name": "TVN RADIO",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "Inicio",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "Explorar",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "Buscar",
-          "resource": "null",
-          "clickable": true
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "Menú",
-          "resource": "null",
-          "clickable": true
+          "name": "Mañana",
+          "clickable": true,
+          "selector": "~Mañana"
         },
         {
           "type": "TextView",
-          "class": "android.widget.TextView",
           "name": "Programación",
-          "resource": "null",
-          "clickable": false
+          "clickable": false,
+          "notes": "Indica que estamos en home screen EPG"
         },
         {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "11:16",
-          "resource": "null",
-          "clickable": false
+          "type": "Button",
+          "name": "Inicio",
+          "clickable": true,
+          "selector": "~Inicio"
         },
         {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "11:30",
-          "resource": "null",
-          "clickable": false
+          "type": "Button",
+          "name": "Explorar",
+          "clickable": true,
+          "selector": "~Explorar"
         },
         {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "SIN PROGRAMACIÓN",
-          "resource": "null",
-          "clickable": false
+          "type": "Button",
+          "name": "Buscar",
+          "clickable": true,
+          "selector": "~Buscar"
         },
         {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "A CONTINUACIÓN: TVN NOTICIAS EDICIÓN ESTELAR",
-          "resource": "null",
-          "clickable": false
-        },
-        {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "A CONTINUACIÓN: IV JUEGOS SURAMERICANOS DE LA JUVENTUD 2026",
-          "resource": "null",
-          "clickable": false
-        },
-        {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "09:30 - 12:00 (2H 30M)",
-          "resource": "null",
-          "clickable": false
-        },
-        {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "Jelou Break con Amanda Díaz y Oscar Ruíz",
-          "resource": "null",
-          "clickable": false
-        },
-        {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "ESTACIONES DE RADIO",
-          "resource": "null",
-          "clickable": false
+          "type": "Button",
+          "name": "Menú",
+          "clickable": true,
+          "selector": "~Menú"
         }
       ]
+    },
+    "buscar": {
+      "trigger": "tap:~Buscar",
+      "depth": 2,
+      "description": "Pantalla de búsqueda — campo de texto para ingresar query",
+      "elements": [
+        {
+          "type": "ViewGroup",
+          "name": "Ingresa tu búsqueda",
+          "clickable": true,
+          "selector": "~Ingresa tu búsqueda",
+          "notes": "Wrapper del campo de búsqueda — tocar activa el EditText"
+        },
+        {
+          "type": "EditText",
+          "name": "Buscar...",
+          "text_placeholder": "Buscar...",
+          "clickable": true,
+          "selector": "android=new UiSelector().className(\"android.widget.EditText\")",
+          "notes": "Campo de texto. Tocar, luego usar browser.keys() para escribir. bounds=[151,145][1039,278]"
+        },
+        {
+          "type": "TextView",
+          "name": "Ingresa tu búsqueda",
+          "clickable": false,
+          "notes": "Placeholder visual cuando no hay query"
+        }
+      ],
+      "how_to_search": [
+        "1. await clickElement('~Buscar');  // navegar a tab buscar",
+        "2. await clickElement('~Ingresa tu búsqueda');  // activar campo",
+        "3. await browser.keys(['n','o','t','i','c','i','a','s']);  // escribir query",
+        "4. // resultados aparecen automáticamente (sin Enter)"
+      ]
+    },
+    "buscar_resultados": {
+      "trigger": "type_text_in_buscar",
+      "depth": 3,
+      "description": "Resultados de búsqueda — lista de shows/series que coinciden con el query",
+      "elements": [
+        {
+          "type": "EditText",
+          "name": "query_text",
+          "notes": "Muestra el texto escrito. bounds=[151,145][929,278]"
+        },
+        {
+          "type": "ViewGroup",
+          "name": "show_card (ejemplo)",
+          "clickable": true,
+          "content_desc_pattern": "\"Show Title, Descripción del show\"",
+          "selector_pattern": "android=new UiSelector().descriptionContains(\"Show Title\")",
+          "notes": "Cada resultado es un ViewGroup con content-desc = 'Título, Descripción'. Tocar navega al detalle del show."
+        }
+      ],
+      "known_shows_from_query_noticias": [
+        {
+          "cd": "Especial de Fin de Año de TVN Noticias 2024 ",
+          "selector": "android=new UiSelector().descriptionContains(\"Especial de Fin\")",
+          "bounds": "[17,364][1064,683]"
+        },
+        {
+          "cd": "Contenido Exclusivo, Contenido exclusivo, con noticias que captan la atención",
+          "selector": "android=new UiSelector().descriptionContains(\"Contenido Exclusivo\")",
+          "bounds": "[17,709][1064,1028]"
+        },
+        {
+          "cd": "Mesa de Periodistas, Entérate junto a nuestros periodistas expertos",
+          "selector": "android=new UiSelector().descriptionContains(\"Mesa de Periodistas\")",
+          "bounds": "[17,1054][1064,1373]"
+        },
+        {
+          "cd": "Mundo Verde, Dale un vistazo al mundo verde que nos rodea",
+          "selector": "android=new UiSelector().descriptionContains(\"Mundo Verde\")",
+          "bounds": "[17,1399][1064,1718]"
+        },
+        {
+          "cd": "TVMAX Deportes, La mejor información de deportes en Panamá",
+          "selector": "android=new UiSelector().descriptionContains(\"TVMAX Deportes\")",
+          "bounds": "[17,1744][1064,2063]"
+        }
+      ],
+      "how_to_click_show": [
+        "// Opción 1: por content-desc parcial (más robusto)",
+        "await clickElement('android=new UiSelector().descriptionContains(\"Mesa de Periodistas\")');",
+        "",
+        "// Opción 2: por content-desc exacto si se conoce",
+        "await clickElement('~Mesa de Periodistas, Entérate junto a nuestros periodistas expertos sobre todas las noticias');"
+      ]
+    },
+    "show_detalle": {
+      "trigger": "tap_show_card_in_results",
+      "depth": 4,
+      "description": "Detalle de un show — lista de temporadas/episodios disponibles para reproducir",
+      "elements": [
+        {
+          "type": "ViewGroup",
+          "name": "episode_card (ejemplo)",
+          "clickable": true,
+          "content_desc_pattern": "\"Título del episodio\"",
+          "selector_pattern": "android=new UiSelector().descriptionContains(\"episodio\")",
+          "notes": "Cada episodio es un ViewGroup clickable. El primero de la lista es el más reciente."
+        }
+      ],
+      "notes": "Después de tocar un show en resultados, la app navega a la pantalla de detalle con lista de episodios. El reproductor arranca al tocar un episodio."
     }
   },
   "navigation_graph": {
-    "en_vivo": []
+    "app_launch": ["home_en_vivo"],
+    "home_en_vivo": ["buscar", "explorar", "menu"],
+    "buscar": ["buscar_resultados"],
+    "buscar_resultados": ["show_detalle"],
+    "show_detalle": ["reproductor"]
   },
-  "bottom_bar": [
-    "EN VIVO",
-    "09:30 - 12:00 (2H 30M)",
-    "Jelou Break con Amanda Díaz y Oscar Ruíz",
-    "ESTACIONES DE RADIO",
-    "VER TODO",
-    "TVN RADIO"
-  ],
-  "total_screens": 1,
-  "total_elements": 25
+  "bottom_bar": ["Inicio", "Explorar", "Buscar", "Menú"],
+  "total_screens": 5,
+  "total_elements": 80
 }

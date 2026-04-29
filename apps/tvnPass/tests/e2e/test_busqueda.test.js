@@ -1,6 +1,6 @@
 'use strict';
 
-const { waitForElement, waitForText } = require('../../../../tests/helpers/waitFor');
+const { waitForElement } = require('../../../../tests/helpers/waitFor');
 const { pageContains } = require('../../../../tests/helpers/pageContains');
 const { clickElement } = require('../../../../tests/helpers/clickHelper');
 const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
@@ -12,24 +12,51 @@ describe('Búsqueda — tvnPass Android', () => {
   });
 
   it('busqueda_tab_buscar_navegable', async () => {
-    // Navega a la tab de búsqueda
     await clickElement('~Buscar');
-    
-    // Valida que la tab Buscar es accesible
-    const buscarVisible = await pageContains('Buscar');
+    const buscarVisible = await pageContains('Ingresa tu búsqueda');
     expect(buscarVisible).toBe(true);
   });
 
-  it('busqueda_query_valido_muestra_resultado', async () => {
+  it('busqueda_query_valido_muestra_resultados', async () => {
     // DOD-04: Búsqueda con query válido muestra resultados en 2s
-    // Primero navega a búsqueda
     await clickElement('~Buscar');
-    
-    // Nota: El UI map no especifica un campo de input de texto.
-    // Este test valida que la navegación a búsqueda es posible.
-    // El ingreso de texto específico requiere que el UI map incluya el input field.
-    const buscarAccessible = await pageContains('Buscar');
-    expect(buscarAccessible).toBe(true);
+
+    // Activar campo y escribir query
+    await clickElement('~Ingresa tu búsqueda');
+    await browser.keys(['n','o','t','i','c','i','a','s']);
+
+    // Resultados deben aparecer sin necesidad de confirmar (autocompletado)
+    const hayResultados = await pageContains('Mesa de Periodistas');
+    expect(hayResultados).toBe(true);
+  });
+
+  it('busqueda_click_show_navega_a_detalle', async () => {
+    // Desde resultados, tocar un show navega a su detalle/episodios
+    await clickElement('~Buscar');
+    await clickElement('~Ingresa tu búsqueda');
+    await browser.keys(['n','o','t','i','c','i','a','s']);
+
+    // Esperar que aparezcan resultados
+    await waitForElement('android=new UiSelector().descriptionContains("Mesa de Periodistas")');
+
+    // Tocar el show
+    await clickElement('android=new UiSelector().descriptionContains("Mesa de Periodistas")');
+
+    // Validar que llegamos al detalle del show
+    const enDetalle = await pageContains('Mesa de Periodistas');
+    expect(enDetalle).toBe(true);
+  });
+
+  it('busqueda_query_muestra_multiples_resultados', async () => {
+    // Validar que la búsqueda retorna más de un resultado
+    await clickElement('~Buscar');
+    await clickElement('~Ingresa tu búsqueda');
+    await browser.keys(['n','o','t','i','c','i','a','s']);
+
+    const resultado1 = await pageContains('Mesa de Periodistas');
+    const resultado2 = await pageContains('Mundo Verde');
+    expect(resultado1).toBe(true);
+    expect(resultado2).toBe(true);
   });
 
 });
