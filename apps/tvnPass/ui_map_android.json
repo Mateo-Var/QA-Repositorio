@@ -4,224 +4,491 @@
   "package": "com.streann.tvnpass",
   "activity": "com.streann.tvnpass.MainActivity",
   "device": "fy9tgmv4kbtox4mj",
-  "explored_at": "2026-04-29T13:21:52.873919+00:00",
+  "explored_at": "2026-04-30T13:50:46.769998+00:00",
   "version": "1.0.0",
   "screens": {
-    "app_launch": {
+    "ver_más": {
       "trigger": "app_launch",
       "depth": 0,
-      "elements": [
-        {
-          "type": "TextView",
-          "class": "android.widget.TextView",
-          "name": "¿Permitir que TVN Pass te envíe notificaciones?",
-          "resource": "com.android.permissioncontroller:id/permission_message",
-          "clickable": false
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "Permitir",
-          "resource": "com.android.permissioncontroller:id/permission_allow_button",
-          "clickable": true
-        },
-        {
-          "type": "Button",
-          "class": "android.widget.Button",
-          "name": "No permitir",
-          "resource": "com.android.permissioncontroller:id/permission_deny_button",
-          "clickable": true
-        }
-      ]
-    },
-    "home_en_vivo": {
-      "trigger": "app_launch or tap:Inicio",
-      "depth": 1,
-      "description": "Pantalla principal — reproductor en vivo + EPG + contenido recomendado",
       "elements": [
         {
           "type": "FrameLayout",
           "class": "android.widget.FrameLayout",
           "name": "Mostrar controles del reproductor",
           "resource": "com.streann.tvnpass:id/player_view",
-          "clickable": true,
-          "selector": "~Mostrar controles del reproductor"
+          "clickable": true
+        },
+        {
+          "type": "View",
+          "class": "android.view.View",
+          "name": "details%3Fid%3Dcom.zhiliaoapp.musically.go%26inline%3Dtrue%26enifd%3DABT2UUhlfusBDWDsGuaQjea3dDZ_TYWu8nj-aw7o4fCb1DjY0XTKZOfgHCRZTzjkOlvWxLpaZHYC-Ni7S-G0_AMtypGvOmcCvyzwsP5uSEhe9d3cGbN4b8-lJb6bTYqpWRlLFpZL8d0jWP55Hhypn6KX85cNC5cXh5Debsi9SFU1DLifLTGcxVuM%26gclid%3DEAIaIQobChMIjMSX1NuVlAMV852DCB3rCzEBEAEYASAAEgLQ6PD_BwE%26referrer%3Dgclid%253DEAIaIQobChMIjMSX1NuVlAMV852DCB3rCzEBEAEYASAAEgLQ6PD_BwE%2526gbraid%253D0AAAAACq0FiYZYS__1AVLi2HWKYT7P_9kb%2526gad_source%253D5%26gref%3DEikQAhohChsKEwiMxJfU25WUAxXznYMIHesLMQEQARgBIAASAtDo8P8HARimrNDVAiIKCAEYECABMAE4AQ%23Intent%3Bscheme%3Dmarket%3Bpackage%3Dcom.android",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "View",
+          "class": "android.view.View",
+          "name": "TikTok Lite",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "View",
+          "class": "android.view.View",
+          "name": "Instalar",
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "ViewGroup",
-          "name": "EN VIVO",
-          "clickable": true,
-          "selector": "~EN VIVO"
-        },
-        {
-          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
           "name": "Anteayer",
-          "clickable": true,
-          "selector": "~Anteayer"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
           "name": "Ayer",
-          "clickable": true,
-          "selector": "~Ayer"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
           "name": "Hoy",
-          "clickable": true,
-          "selector": "~Hoy"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
           "name": "Mañana",
-          "clickable": true,
-          "selector": "~Mañana"
+          "resource": "null",
+          "clickable": true
         },
         {
-          "type": "TextView",
-          "name": "Programación",
-          "clickable": false,
-          "notes": "Indica que estamos en home screen EPG"
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "PROGRAMACIÓN ANTERIOR",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO, 08:00 - 11:00 (3 HRS), Jelou!",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO, 08:00 - 09:10 (1H 10M), Mesa De Periodistas",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "EN VIVO, 08:00 - 09:00 (1 HR), Mesa de Periodistas",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "30 DE APR (09:00 - 09:30), Jelou Break Musical",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "VER TODO",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "TVN RADIO",
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "Button",
+          "class": "android.widget.Button",
           "name": "Inicio",
-          "clickable": true,
-          "selector": "~Inicio"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "Button",
+          "class": "android.widget.Button",
           "name": "Explorar",
-          "clickable": true,
-          "selector": "~Explorar"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "Button",
+          "class": "android.widget.Button",
           "name": "Buscar",
-          "clickable": true,
-          "selector": "~Buscar"
+          "resource": "null",
+          "clickable": true
         },
         {
           "type": "Button",
+          "class": "android.widget.Button",
           "name": "Menú",
-          "clickable": true,
-          "selector": "~Menú"
-        }
-      ]
-    },
-    "buscar": {
-      "trigger": "tap:~Buscar",
-      "depth": 2,
-      "description": "Pantalla de búsqueda — campo de texto para ingresar query",
-      "elements": [
-        {
-          "type": "ViewGroup",
-          "name": "Ingresa tu búsqueda",
-          "clickable": true,
-          "selector": "~Ingresa tu búsqueda",
-          "notes": "Wrapper del campo de búsqueda — tocar activa el EditText"
+          "resource": "null",
+          "clickable": true
         },
         {
-          "type": "EditText",
-          "name": "Buscar...",
-          "text_placeholder": "Buscar...",
-          "clickable": true,
-          "selector": "android=new UiSelector().className(\"android.widget.EditText\")",
-          "notes": "Campo de texto. Tocar, luego usar browser.keys() para escribir. bounds=[151,145][1039,278]"
+          "type": "View",
+          "class": "android.view.View",
+          "name": "Skip Ad",
+          "resource": "null",
+          "clickable": false
         },
         {
           "type": "TextView",
-          "name": "Ingresa tu búsqueda",
-          "clickable": false,
-          "notes": "Placeholder visual cuando no hay query"
-        }
-      ],
-      "how_to_search": [
-        "1. await clickElement('~Buscar');  // navegar a tab buscar",
-        "2. await clickElement('~Ingresa tu búsqueda');  // activar campo",
-        "3. await browser.keys(['n','o','t','i','c','i','a','s']);  // escribir query",
-        "4. // resultados aparecen automáticamente (sin Enter)"
-      ]
-    },
-    "buscar_resultados": {
-      "trigger": "type_text_in_buscar",
-      "depth": 3,
-      "description": "Resultados de búsqueda — lista de shows/series que coinciden con el query",
-      "elements": [
+          "class": "android.widget.TextView",
+          "name": "4.4",
+          "resource": "null",
+          "clickable": false
+        },
         {
-          "type": "EditText",
-          "name": "query_text",
-          "notes": "Muestra el texto escrito. bounds=[151,145][929,278]"
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Programación",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "08:48",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "09:00",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "08:00 - 11:00 (3 HRS)",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Jelou!",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "08:00 - 09:10 (1H 10M)",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Mesa De Periodistas",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "08:00 - 09:00 (1 HR)",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Mesa de Periodistas",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "30 DE APR (09:00 - 09:30)",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Jelou Break Musical",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "ESTACIONES DE RADIO",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "¡La fiesta continúa en Super 99!",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Celebra el aniversario y participa para ganar $40,000 mensuales, una Geely Cityray o una TV AIWA.",
+          "resource": "null",
+          "clickable": false
         },
         {
           "type": "ViewGroup",
-          "name": "show_card (ejemplo)",
-          "clickable": true,
-          "content_desc_pattern": "\"Show Title, Descripción del show\"",
-          "selector_pattern": "android=new UiSelector().descriptionContains(\"Show Title\")",
-          "notes": "Cada resultado es un ViewGroup con content-desc = 'Título, Descripción'. Tocar navega al detalle del show."
-        }
-      ],
-      "known_shows_from_query_noticias": [
-        {
-          "cd": "Especial de Fin de Año de TVN Noticias 2024 ",
-          "selector": "android=new UiSelector().descriptionContains(\"Especial de Fin\")",
-          "bounds": "[17,364][1064,683]"
+          "class": "android.view.ViewGroup",
+          "name": "VER MÁS",
+          "resource": "null",
+          "clickable": true
         },
-        {
-          "cd": "Contenido Exclusivo, Contenido exclusivo, con noticias que captan la atención",
-          "selector": "android=new UiSelector().descriptionContains(\"Contenido Exclusivo\")",
-          "bounds": "[17,709][1064,1028]"
-        },
-        {
-          "cd": "Mesa de Periodistas, Entérate junto a nuestros periodistas expertos",
-          "selector": "android=new UiSelector().descriptionContains(\"Mesa de Periodistas\")",
-          "bounds": "[17,1054][1064,1373]"
-        },
-        {
-          "cd": "Mundo Verde, Dale un vistazo al mundo verde que nos rodea",
-          "selector": "android=new UiSelector().descriptionContains(\"Mundo Verde\")",
-          "bounds": "[17,1399][1064,1718]"
-        },
-        {
-          "cd": "TVMAX Deportes, La mejor información de deportes en Panamá",
-          "selector": "android=new UiSelector().descriptionContains(\"TVMAX Deportes\")",
-          "bounds": "[17,1744][1064,2063]"
-        }
-      ],
-      "how_to_click_show": [
-        "// Opción 1: por content-desc parcial (más robusto)",
-        "await clickElement('android=new UiSelector().descriptionContains(\"Mesa de Periodistas\")');",
-        "",
-        "// Opción 2: por content-desc exacto si se conoce",
-        "await clickElement('~Mesa de Periodistas, Entérate junto a nuestros periodistas expertos sobre todas las noticias');"
-      ]
-    },
-    "show_detalle": {
-      "trigger": "tap_show_card_in_results",
-      "depth": 4,
-      "description": "Detalle de un show — lista de temporadas/episodios disponibles para reproducir",
-      "elements": [
         {
           "type": "ViewGroup",
-          "name": "episode_card (ejemplo)",
-          "clickable": true,
-          "content_desc_pattern": "\"Título del episodio\"",
-          "selector_pattern": "android=new UiSelector().descriptionContains(\"episodio\")",
-          "notes": "Cada episodio es un ViewGroup clickable. El primero de la lista es el más reciente."
+          "class": "android.view.ViewGroup",
+          "name": "Voces de la Naturaleza, PROGRAMA DE TELEVISIÓNDOCUMENTAL2026",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Pedrito, Nunca Partió, PELÍCULASDOCUMENTAL2026",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Mesa de Periodistas, PROGRAMA DE TELEVISIÓNNOTICIAS Y POLÍTICA2025",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Radar, PROGRAMA DE TELEVISIÓNNUEVOS NEGOCIOS, POLÍTICA2024",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "RECOMENDADOS",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Voces de la Naturaleza",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓNDOCUMENTAL2026",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Pedrito, Nunca Partió",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PELÍCULASDOCUMENTAL2026",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "NOTICIAS",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓNNOTICIAS Y POLÍTICA2025",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Radar",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓNNUEVOS NEGOCIOS, POLÍTICA2024",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "EL MUNDIAL 2026 SE VIVE EN TVMAX",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "El Mundial se Vive en TVMAX, PROGRAMA DE TELEVISIÓN2026",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Mundialmente, PROGRAMA DE TELEVISIÓN2026",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Tu Cara Me Suena, PROGRAMA DE TELEVISIÓNMÚSICA2025",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Hecho En Panamá, PROGRAMA DE TELEVISIÓN2024",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "El Mundial se Vive en TVMAX",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓN2026",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Mundialmente",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PRODUCCIÓN TVN",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Tu Cara Me Suena",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓNMÚSICA2025",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "Hecho En Panamá",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "PROGRAMA DE TELEVISIÓN2024",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "TOP 10",
+          "resource": "null",
+          "clickable": false
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Voces de la Naturaleza: Guardianes del Agua",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "ViewGroup",
+          "class": "android.view.ViewGroup",
+          "name": "Voces de la Naturaleza: Refugio de Gigantes",
+          "resource": "null",
+          "clickable": true
+        },
+        {
+          "type": "TextView",
+          "class": "android.widget.TextView",
+          "name": "VOCES DE LA NATURALEZA",
+          "resource": "null",
+          "clickable": false
         }
-      ],
-      "notes": "Después de tocar un show en resultados, la app navega a la pantalla de detalle con lista de episodios. El reproductor arranca al tocar un episodio."
+      ]
     }
   },
   "navigation_graph": {
-    "app_launch": ["home_en_vivo"],
-    "home_en_vivo": ["buscar", "explorar", "menu"],
-    "buscar": ["buscar_resultados"],
-    "buscar_resultados": ["show_detalle"],
-    "show_detalle": ["reproductor"]
+    "ver_más": []
   },
-  "bottom_bar": ["Inicio", "Explorar", "Buscar", "Menú"],
-  "total_screens": 5,
-  "total_elements": 80
+  "bottom_bar": [
+    "null"
+  ],
+  "total_screens": 1,
+  "total_elements": 67
 }
