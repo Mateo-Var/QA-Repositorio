@@ -401,6 +401,28 @@ GH_TOKEN=                    # = ${{ github.token }} en Actions — para gh pr c
 
 ```json
 {
+  "last_run": "2026-04-29T22:16:50.712307+00:00",
+  "last_run_app": "tvnPass",
+  "last_run_date": "2026-04-29",
+  "dod_status": "failed",
+  "recurring_failures": [
+    "DOD-03",
+    "DOD-04"
+  ],
+  "learned_patterns": [
+    "Fallos en DOD-03 y DOD-04 pueden estar relacionados con validaciones de UI espec\u00edficas en Android",
+    "Necesario validar condiciones de aceptaci\u00f3n m\u00e1s estrictas para estos criterios",
+    "Posible issue de timing o sincronizaci\u00f3n en ejecuci\u00f3n de tests consecutivos"
+  ],
+  "timing_baselines": {
+    "login_to_home_ms": null,
+    "search_results_ms": null,
+    "video_buffer_ms": null
+  },
+  "total_runs": 1
+}
+```json
+{
   "last_run": null,
   "last_run_app": null,
   "last_run_date": null,

@@ -1,6 +1,25 @@
 {
-  "version": 1,
-  "last_compressed": null,
-  "summary": null,
-  "sessions": []
+  "version": 2,
+  "last_compressed": "2026-04-29T22:16:50.712307+00:00",
+  "summary": "Run 20260429_220429 en Android fall\u00f3 con exit_code 1. DOD-03 y DOD-04 no cumplieron criterios de aceptaci\u00f3n. Dispositivo: fy9tgmv4kbtox4mj. Se generaron evidencias (screenshots, video) para an\u00e1lisis. Requiere investigaci\u00f3n de qu\u00e9 validaciones espec\u00edficas fallaron en DOD-03 y DOD-04 para ajustar generadores de tests.",
+  "sessions": [
+    {
+      "timestamp": "2026-04-29T22:16:50.712307+00:00",
+      "summary": "Run 20260429_220429 en Android fall\u00f3 con exit_code 1. DOD-03 y DOD-04 no cumplieron criterios de aceptaci\u00f3n. Dispositivo: fy9tgmv4kbtox4mj. Se generaron evidencias (screenshots, video) para an\u00e1lisis. Requiere investigaci\u00f3n de qu\u00e9 validaciones espec\u00edficas fallaron en DOD-03 y DOD-04 para ajustar generadores de tests.",
+      "failed_tests": [
+        "DOD-03",
+        "DOD-04"
+      ],
+      "learned_patterns": [
+        "Fallos en DOD-03 y DOD-04 pueden estar relacionados con validaciones de UI espec\u00edficas en Android",
+        "Necesario validar condiciones de aceptaci\u00f3n m\u00e1s estrictas para estos criterios",
+        "Posible issue de timing o sincronizaci\u00f3n en ejecuci\u00f3n de tests consecutivos"
+      ],
+      "timing_baselines": {
+        "login_to_home_ms": null,
+        "search_results_ms": null,
+        "video_buffer_ms": null
+      }
+    }
+  ]
 }
