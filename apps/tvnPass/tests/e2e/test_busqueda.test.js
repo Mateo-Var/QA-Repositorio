@@ -158,32 +158,62 @@ async function reproducirPrimerEpisodioYValidarPlayer() {
 describe('Búsqueda — tvnPass Android', () => {
 
   before(async () => {
-    // Salir de cualquier show/player antes de normalizar para evitar swipes accidentales
+    // Reset agresivo: BACK key x5 para salir de cualquier fullscreen/player
+    // Necesario cuando este spec corre primero en la suite (dispositivo en estado desconocido)
+    for (let i = 0; i < 5; i++) {
+      try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (_) {}
+      await browser.pause(300);
+    }
+    // Salir de cualquier show con botón VOLVER
     for (let i = 0; i < 5; i++) {
       const tieneVolver = await browser.$('~VOLVER').isExisting().catch(() => false);
       if (!tieneVolver) break;
-      await browser.back();
+      await browser.back().catch(() => {});
       await browser.pause(700);
     }
     await normalizarEstadoApp();
-    await clickElement('~Buscar');
-    await browser.pause(600);
-    await clickElement('~Buscar');
-    await browser.pause(800);
-    // Limpiar cualquier texto residual del campo de búsqueda (ej: "Exatlon" del run anterior)
-    const { width } = await browser.getWindowSize();
-    await browser.action('pointer')
-      .move({ x: Math.floor(width / 2), y: 210 })
-      .down().up()
-      .perform();
-    await browser.pause(400);
-    const campo = await browser.$('android=new UiSelector().focused(true)');
-    await campo.clearValue().catch(() => {});
-    await browser.pause(300);
-    const isKeyboardShown = await browser.isKeyboardShown();
-    if (isKeyboardShown) {
-      await browser.hideKeyboard();
-      await browser.pause(500);
+    await browser.pause(1000);
+
+    // Doble-tap Buscar con verificación y reintento (hasta 3 intentos)
+    // Cada intento en try/catch: si clickElement falla (navbar oculta), recupera con BACKs
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await clickElement('~Buscar');
+        await browser.pause(600);
+        await clickElement('~Buscar');
+        await browser.pause(1000);
+      } catch (_) {
+        // Navbar desapareció (show abierto) — volver con BACKs y reintentar
+        for (let i = 0; i < 5; i++) {
+          try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (__) {}
+          await browser.pause(400);
+          const navVisible = await browser.$('~Buscar').isExisting().catch(() => false);
+          if (navVisible) break;
+        }
+        await browser.pause(500);
+        continue;
+      }
+
+      // Limpiar campo residual
+      const { width } = await browser.getWindowSize();
+      await browser.action('pointer')
+        .move({ x: Math.floor(width / 2), y: 210 })
+        .down().up()
+        .perform();
+      await browser.pause(400);
+      const campo = await browser.$('android=new UiSelector().focused(true)');
+      await campo.clearValue().catch(() => {});
+      await browser.pause(300);
+      const isKeyboardShown = await browser.isKeyboardShown();
+      if (isKeyboardShown) { await browser.hideKeyboard(); await browser.pause(500); }
+
+      // Verificar que llegamos al buscador
+      const navBuscar = await browser.$('~Buscar').isExisting().catch(() => false);
+      if (navBuscar) break;
+
+      // Si no llegamos, normalizar y reintentar
+      await normalizarEstadoApp();
+      await browser.pause(800);
     }
   });
 
