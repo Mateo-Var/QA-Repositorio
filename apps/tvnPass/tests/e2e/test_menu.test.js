@@ -16,6 +16,10 @@ const { boundsOf, tapByBounds }         = require('../../../../tests/helpers/tap
 describe('Menú — tvnPass Android', () => {
 
   before(async () => {
+    for (let i = 0; i < 5; i++) {
+      try { await browser.execute('mobile: pressKey', { keycode: 4 }); } catch (_) {}
+      await browser.pause(300);
+    }
     await normalizarEstadoApp();
     await dismissPromoPopupIfVisible();
   });
