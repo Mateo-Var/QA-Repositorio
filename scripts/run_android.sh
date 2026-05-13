@@ -11,8 +11,14 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_ID="${APP_ID:?ERROR: APP_ID requerido}"
 
-# ── Cargar .env si existe ─────────────────────────────────────────────────────
-[[ -f "$ROOT/.env" ]] && source "$ROOT/.env"
+# ── Cargar .env si existe — sin pisar APP_ID ni vars ya exportadas ────────────
+if [[ -f "$ROOT/.env" ]]; then
+  while IFS='=' read -r key val; do
+    [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+    key="${key//[[:space:]]/}"
+    [[ -z "${!key+x}" ]] && export "$key"="$val"
+  done < "$ROOT/.env"
+fi
 
 TESTS_DIR="$ROOT/tests"
 
@@ -41,15 +47,7 @@ APPIUM_PORT="${APPIUM_URL##*:}"
 APPIUM_PORT="${APPIUM_PORT%%/*}"
 
 _appium_up() {
-  python -c "
-import socket, sys
-try:
-    s = socket.create_connection(('127.0.0.1', $APPIUM_PORT), timeout=5)
-    s.close()
-except Exception:
-    sys.exit(1)
-sys.exit(0)
-" 2>/dev/null
+  curl -sf "http://127.0.0.1:${APPIUM_PORT}/status" > /dev/null 2>&1
 }
 
 echo "🔌 Verificando Appium en puerto ${APPIUM_PORT}..."
@@ -57,7 +55,13 @@ if _appium_up; then
   echo "   ✓ Appium ya está corriendo en el puerto ${APPIUM_PORT}"
 else
   echo "   Appium no responde — liberando puerto ${APPIUM_PORT} si está ocupado..."
-  lsof -ti :"${APPIUM_PORT}" | xargs kill -9 2>/dev/null || true
+  # lsof no disponible en Windows — usar netstat + taskkill
+  if command -v lsof &>/dev/null; then
+    lsof -ti :"${APPIUM_PORT}" | xargs kill -9 2>/dev/null || true
+  else
+    PID_IN_USE=$(netstat -ano 2>/dev/null | grep ":${APPIUM_PORT} " | awk '{print $NF}' | head -1)
+    [[ -n "$PID_IN_USE" ]] && taskkill //PID "$PID_IN_USE" //F 2>/dev/null || true
+  fi
   sleep 4
   echo "   Iniciando Appium en puerto ${APPIUM_PORT}..."
   mkdir -p "$ROOT/reports/$APP_ID/logs"

@@ -17,19 +17,23 @@ Según el modo indicado por el Agente 1:
 - `clickHelper.js` exporta `clickElement` (alias de `clickText`) — usar siempre `clickElement`
 
 ## Rutas de helpers — CRÍTICO
-Los tests se guardan en `apps/{app_id}/tests/e2e/`.
-Los helpers están en `tests/helpers/` en la raíz del repo.
-La ruta relativa correcta desde cualquier test es siempre:
+Los tests genéricos se guardan en `tests/e2e/`.
+Los helpers están en `tests/helpers/`.
+La ruta relativa correcta desde `tests/e2e/` es siempre:
 
 ```javascript
-const { waitForElement, waitForText } = require('../../../../tests/helpers/waitFor');
-const { pageContains }               = require('../../../../tests/helpers/pageContains');
-const { clickElement }               = require('../../../../tests/helpers/clickHelper');
-const { normalizarEstadoApp }        = require('../../../../tests/helpers/appState');
-const { takeScreenshot }             = require('../../../../tests/helpers/screenshot');
+const { waitForElement, waitForText } = require('../helpers/waitFor');
+const { pageContains, pageContainsAny } = require('../helpers/pageContains');
+const { clickElement }               = require('../helpers/clickHelper');
+const { normalizarEstadoApp,
+        dismissPromoPopupIfVisible } = require('../helpers/appState');
+const { takeScreenshot }             = require('../helpers/screenshot');
+// Helper de configuración del cliente activo (APP_ID):
+const { tabs, tabSelector, features, texts, credentials, APP_ID } = require('./clientConfig');
 ```
 
-NUNCA usar `../helpers/` — esa ruta no existe y causará `Cannot find module`.
+NUNCA usar `../../../../tests/helpers/` — los tests ya están dentro de `tests/e2e/`.
+NUNCA usar rutas absolutas ni `apps/{app_id}/` dentro de un test.
 
 ## Cómo usar las fuentes de contexto
 
@@ -43,15 +47,72 @@ Contiene los elementos reales encontrados en el dispositivo por el Agente 0 (Exp
 - Si la pantalla de login no está en el UI map, NO generes tests de login.
 - Basa los selectores exclusivamente en lo que el UI map describe — no inventes elementos.
 
-### 2. `app_context` — fuente de verdad para prioridades de negocio (MENOR PRIORIDAD)
+### 2. `test_cases` — casos a implementar, ya filtrados para este cliente (MAYOR PRIORIDAD junto con ui_map)
+Lista producida por el Agente 1.5 (test_case_reader). Solo contiene los casos que aplican a este cliente específico según su `client_config.json`.
+- Implementa **únicamente** los casos presentes en esta lista — no inventes ni agregues casos extra.
+- Cada caso tiene `id`, `title`, `steps`, `expected_result`, `severity` y `dod_associated`.
+- Usa los `steps` como guía para los pasos del test y `expected_result` para los `expect()`.
+- Un caso = un `it()` dentro del `describe`. El nombre del `it()` sigue la convención snake_case del `id` + `title` resumido.
+
+### 3. `setup` — bloque de login generado por el Agente 1.5
+Si `setup.requires_login` es `true`, el test necesita un `before()` o `beforeAll()` con login.
+- Usa `setup.selectors` para los campos del formulario (los selectores ya están resueltos para este cliente).
+- Lee credenciales desde `process.env.TEST_USER_EMAIL` y `process.env.TEST_USER_PASSWORD`.
+- Verifica éxito con `setup.success_indicator` (nombre de pantalla que debe aparecer tras el login).
+- Si `requires_login` es `false` u omitido, no generes lógica de login.
+
+### 4. `app_context` — fuente de verdad para prioridades de negocio (MENOR PRIORIDAD)
 Describe qué flujos son DOD-críticos y el propósito de la app.
-- Úsalo para decidir qué flujos testear primero.
-- Si contradice al UI map (ej: dice "hay login" pero el UI map no lo muestra), el UI map gana.
+- Úsalo para contexto adicional, no para generar casos fuera de `test_cases`.
 
 ### Regla de oro
-> Genera tests solo para lo que puedas ver en `ui_map.screens`.
-> Usa `app_context` para priorizar, no para inventar elementos.
-> Si el UI map no muestra pantalla de login → NO generes `test_login_email`, `test_logout` ni ningún test de autenticación.
+> Genera exactamente los tests listados en `test_cases`.
+> Usa `ui_map` para resolver selectores reales — si el elemento no está en el ui_map, usa el fallback de UiSelector.text().
+> Usa `setup` para construir el `before()` con login si aplica.
+> Nunca generes tests para flujos que no estén en `test_cases`.
+
+### CRÍTICO — Tests genéricos, nunca hardcodear valores de un cliente
+Los tests corren para CUALQUIER cliente (NextOTT, tvnPass, etc.) vía `APP_ID`.
+**NUNCA hardcodear** nombres de tabs, labels de UI ni textos específicos de un cliente.
+En su lugar, usar siempre `tabSelector()` y `texts` del `clientConfig`:
+
+```javascript
+// CORRECTO — genérico, funciona para cualquier cliente:
+const { tabSelector, texts, tabs } = require('./clientConfig');
+await clickElement(tabSelector('Search'));   // resuelve '~Buscar' o '~Search' según el cliente
+await clickElement(tabSelector('Home'));     // resuelve '~HOME' o '~Inicio' según el cliente
+
+// INCORRECTO — hardcodeado para un cliente específico:
+await clickElement('~HOME');     // solo funciona en NextOTT
+await clickElement('~Inicio');   // solo funciona en tvnPass
+await clickElement('~Buscar');   // puede variar entre clientes
+```
+
+`tabSelector(logicalName)` busca el tab cuyo `name` o `title` contenga `logicalName` y retorna `~{title}`.
+Nombres lógicos disponibles: `'Home'`, `'Search'`, `'Discover'`, `'Downloads'`, `'Account'`, `'Menu'`.
+
+`hasTab(logicalName)` retorna `true` si ese tab existe en el bottom bar real del dispositivo (según `ui_map_android.json`).
+**Úsalo SIEMPRE antes de hacer click en tabs opcionales como Downloads.**
+
+### Regla de navegación para secciones dentro del Menú
+Algunas apps no exponen Downloads como tab del bottom bar — lo ubican dentro del tab Account/Menú.
+El `ui_map_android.json` es la fuente de verdad: si `hasTab('Downloads')` es `false`, la sección Descargas vive dentro del tab Account.
+
+```javascript
+const { tabSelector, hasTab, features } = require('./clientConfig');
+
+// CORRECTO — navegar a Downloads según la estructura real de la app:
+if (hasTab('Downloads')) {
+  await clickElement(tabSelector('Downloads'));          // tab propio en el bottom bar
+} else {
+  await clickElement(tabSelector('Account'));            // Descargas está dentro del Menú
+  const dl = await $('android=new UiSelector().text("Descargas")');
+  if (await dl.isExisting()) await dl.click();
+}
+
+// INCORRECTO — asumir que Downloads siempre es un tab:
+await clickElement(tabSelector('Downloads'));  // lanza error si el tab no existe
+```
 
 ## Modo: generate
 
@@ -72,6 +133,8 @@ Un JSON con esta estructura:
   }
 }
 ```
+
+> **CRÍTICO:** En el campo `content` usa SIEMPRE comillas simples para los strings JavaScript. Escapa los caracteres especiales correctamente. Devuelve SOLO el JSON, sin texto adicional.
 
 ### Convenciones obligatorias
 
@@ -105,24 +168,76 @@ await $('~EN VIVO').waitForDisplayed({ timeout: 3000 });
 // Nunca xpath ni selectores iOS
 ```
 
-**Estado inicial — SIEMPRE normalizar:**
+**Estado inicial — SIEMPRE reset agresivo + normalizar + dismiss popup:**
 ```javascript
+const { normalizarEstadoApp, resetAgresivo, dismissPromoPopupIfVisible } = require('../helpers/appState');
+
 before(async () => {
+  await resetAgresivo();               // keycode 3 (Android HOME) — backgroundea sin cerrar la app
+  await normalizarEstadoApp();         // lleva la app al home screen (NO llama resetAgresivo internamente)
+  await dismissPromoPopupIfVisible();  // descarta popups de promo si aparecen
+});
+
+// CRÍTICO: resetAgresivo() y normalizarEstadoApp() NO deben llamarse juntos dos veces.
+// normalizarEstadoApp() NO llama resetAgresivo() internamente.
+// El before/beforeEach es el único lugar donde se llama resetAgresivo().
+```
+
+`resetAgresivo()` envía keycode 3 (Android HOME) — backgroundea la app al launcher sin cerrarla, luego `activateApp` la trae al frente.
+**NUNCA usar `browser.back()` ni keycode 4 como reset general** — desde el home o el player cierran la app.
+**Excepción — navbar oculta**: si un tab no se encuentra (pantalla fullscreen/modal ocultó el bottom bar), un solo `browser.back()` es suficiente para volver a la pantalla anterior y recuperar la navbar sin cerrar la app. Siempre usar `clickTab()` de `clientConfig.js` — ya implementa este patrón automáticamente.
+
+**Después de cada tap de tab — siempre dismiss popup y pausa:**
+```javascript
+await clickElement(tabSelector('Search'));
+await browser.pause(800);
+await dismissPromoPopupIfVisible();
+```
+
+**Tabs de búsqueda — doble tap para activar el campo:**
+En apps OTT el primer tap activa el tab y el segundo asegura que el campo esté listo para recibir texto.
+```javascript
+await clickElement(tabSelector('Search'));
+await browser.pause(600);
+await clickElement(tabSelector('Search'));  // segundo tap para activar el campo
+await browser.pause(800);
+```
+
+**CRÍTICO — `resetAgresivo()` y `normalizarEstadoApp()` SOLO en `before()`, NUNCA dentro de un `it()`:**
+Meter estas llamadas dentro de cada `it()` hace que la app vaya al launcher y vuelva antes de cada acción — rompe todos los tests.
+```javascript
+// CORRECTO — una sola vez por suite:
+before(async () => {
+  await resetAgresivo();
   await normalizarEstadoApp();
+  await dismissPromoPopupIfVisible();
+});
+
+it('mi_test', async () => {
+  // NUNCA resetAgresivo() ni normalizarEstadoApp() aquí dentro
+  await clickElement(tabSelector('Home'));
+  ...
+});
+
+// INCORRECTO — la app abre/cierra antes de cada it:
+it('mi_test', async () => {
+  await resetAgresivo();        // ← MAL
+  await normalizarEstadoApp();  // ← MAL
+  ...
 });
 ```
 
 **NO incluir `afterEach` en los tests generados:**
 `wdio.conf.js` ya tiene un `afterEach` global que captura screenshots automáticamente en `happy_path/` y `failures/`. Si el test incluye su propio `afterEach` para screenshots, se duplica la captura y falla con errores de directorio. Solo usa `before` para setup.
 
-**Verificación de presencia — usar pageContains, no findElement:**
+**Verificación de presencia — usar pageContainsAny con múltiples variantes:**
+Las apps OTT tienen textos que varían entre clientes. Siempre dar múltiples opciones.
 ```javascript
-// Correcto (3-5x más rápido):
-const visible = await pageContains('EN VIVO');
+// Correcto — robusto para cualquier cliente:
+const visible = await pageContainsAny(['EN VIVO', 'en vivo', 'AL AIRE', 'LIVE']);
 
-// Incorrecto:
-const el = await $('~EN VIVO');
-await el.waitForDisplayed();
+// Frágil — solo funciona si el texto es exactamente ese:
+const visible = await pageContains('EN VIVO');
 ```
 
 **Waits con timeout DOD:**
@@ -142,32 +257,38 @@ const password = process.env.TEST_USER_PASSWORD || 'test1234';
 
 ### Estructura de un test bien formado
 Sin `afterEach` — los screenshots los maneja `wdio.conf.js` automáticamente.
+Siempre importar `clientConfig` para usar tabs y features del cliente activo.
+Los tests son GENÉRICOS — no hardcodear nombres de apps ni selectores específicos de un cliente.
 
 ```javascript
 'use strict';
 
-const { waitForElement }      = require('../../../../tests/helpers/waitFor');
-const { pageContains }        = require('../../../../tests/helpers/pageContains');
-const { clickElement }        = require('../../../../tests/helpers/clickHelper');
-const { normalizarEstadoApp } = require('../../../../tests/helpers/appState');
+const { waitForElement }      = require('../helpers/waitFor');
+const { pageContains, pageContainsAny } = require('../helpers/pageContains');
+const { clickElement }        = require('../helpers/clickHelper');
+const { normalizarEstadoApp,
+        resetAgresivo,
+        dismissPromoPopupIfVisible } = require('../helpers/appState');
+const { takeScreenshot }      = require('../helpers/screenshot');
+const { tabSelector, hasTab, features, APP_ID } = require('./clientConfig');
 
-describe('Reproductor Live — tvnPass Android', () => {
+describe(`Menú principal (${APP_ID})`, () => {
 
   before(async () => {
+    await resetAgresivo();
     await normalizarEstadoApp();
+    await dismissPromoPopupIfVisible();
   });
 
-  it('reproductor_live_carga_player_en_pantalla', async () => {
-    // DOD-03: Buffer inicial completado en 10s
-    const playerVisible = await pageContains('EN VIVO');
-    expect(playerVisible).toBe(true);
-  });
-
-  it('reproductor_live_controles_visibles_al_tocar', async () => {
-    await clickElement('~Mostrar controles del reproductor');
-    await waitForElement('~Mostrar controles del reproductor', 5000);
-    const ctrl = await pageContains('Programación');
-    expect(ctrl).toBe(true);
+  it('menu_tab_search_navegable', async () => {
+    await clickElement(tabSelector('Search'));
+    await browser.pause(600);
+    await clickElement(tabSelector('Search'));  // doble tap para activar campo
+    await browser.pause(800);
+    await dismissPromoPopupIfVisible();
+    const visible = await pageContainsAny(['Buscar', 'Search', 'Ingresa', 'Buscar...']);
+    await takeScreenshot('menu_tab_search');
+    expect(visible).toBe(true);
   });
 
 });

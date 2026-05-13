@@ -19,23 +19,35 @@ process.env.APPIUM_HOME  = require('os').homedir() + '/appium-home';
 // ── App seleccionada (multi-app) ──────────────────────────────────────────────
 const APP_ID = (process.env.APP_ID || 'tvnPass').trim();
 
+// ── Leer package y activity desde client_config.json del cliente activo ───────
+let _clientNative = {};
+try {
+  const _cfg = require(path.resolve(__dirname, `../apps/${APP_ID}/client_config.json`));
+  _clientNative = ((_cfg.native || {}).android) || {};
+} catch (_) {}
+
 // ── Android ───────────────────────────────────────────────────────────────────
-const ANDROID_DEVICE   = (process.env.ANDROID_DEVICE_NAME  || 'fy9tgmv4kbtox4mj').trim();
-const APP_PACKAGE      = (process.env.ANDROID_APP_PACKAGE   || 'com.streann.tvnpass').trim();
-const APP_ACTIVITY     = (process.env.ANDROID_APP_ACTIVITY  || 'com.streann.tvnpass.MainActivity').trim();
-const ANDROID_APPIUM   = (process.env.APPIUM_SERVER_URL     || 'http://localhost:4723').trim();
+// Dispositivos disponibles:
+//   fy9tgmv4kbtox4mj  — Xiaomi 24049RN28L (WiFi: 192.168.1.231:5555)
+//   R5CTB1W92KY       — Samsung SM-A536E Galaxy A53 5G (Android 16)
+const ANDROID_DEVICE = (process.env.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj').trim();
+// client_config.json tiene prioridad sobre env vars — evita que tvnPass pise NextOTT
+const APP_PACKAGE    = (_clientNative.package  || process.env.ANDROID_APP_PACKAGE  || '').trim();
+const APP_ACTIVITY   = (_clientNative.activity || process.env.ANDROID_APP_ACTIVITY || '').trim();
+const ANDROID_APPIUM = (process.env.APPIUM_SERVER_URL    || 'http://localhost:4723').trim();
 
 // ── iOS ───────────────────────────────────────────────────────────────────────
-const IOS_UDID      = (process.env.IOS_DEVICE_UDID    || '00008140-00045DCE3422801C').trim();
-const IOS_BUNDLE_ID = (process.env.IOS_BUNDLE_ID      || 'com.tvn-2.appletv').trim();
-const IOS_TEAM_ID   = (process.env.IOS_TEAM_ID        || '8KW4872JND').trim();
-const IOS_APPIUM    = (process.env.IOS_APPIUM_SERVER_URL || 'http://localhost:4724').trim();
+const IOS_UDID      = (process.env.IOS_DEVICE_UDID       || '').trim();
+const IOS_BUNDLE_ID = (process.env.IOS_BUNDLE_ID         || _clientNative.bundleId || '').trim();
+const IOS_TEAM_ID   = (process.env.IOS_TEAM_ID           || '').trim();
+const IOS_APPIUM    = (process.env.IOS_APPIUM_SERVER_URL  || 'http://localhost:4724').trim();
 
 const APPIUM_URL = IS_IOS ? IOS_APPIUM : ANDROID_APPIUM;
 
+// Tests genéricos en tests/e2e/ — un solo set para todos los clientes
 const specsPath = IS_IOS
-  ? path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/ios/*.test.js`)
-  : path.resolve(__dirname, `../apps/${APP_ID}/tests/e2e/*.test.js`);
+  ? path.resolve(__dirname, 'e2e/ios/*.test.js')
+  : path.resolve(__dirname, 'e2e/*.test.js');
 
 exports.config = {
   runner:   'local',
@@ -132,6 +144,23 @@ exports.config = {
     ].forEach(dir => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
 
     await browser.setTimeout({ implicit: 0 });
+
+    // ── Verificar que la app está en foreground antes de empezar ──────────────
+    if (!IS_IOS && APP_PACKAGE) {
+      try {
+        const appState = await driver.queryAppState(APP_PACKAGE);
+        // 4 = running in foreground, 3 = running in background
+        if (appState !== 4) {
+          console.log(`[before] App no está en foreground (estado: ${appState}) — activando...`);
+          await driver.activateApp(APP_PACKAGE);
+          await browser.pause(2000);
+        }
+        console.log(`[before] ✓ App ${APP_PACKAGE} en foreground`);
+      } catch (e) {
+        console.warn(`[before] No se pudo verificar estado de la app — intentando activar...`);
+        try { await driver.activateApp(APP_PACKAGE); await browser.pause(2000); } catch (_) {}
+      }
+    }
 
     if (IS_IOS) return; // iOS no soporta adb screenrecord
 

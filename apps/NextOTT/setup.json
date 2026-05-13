@@ -1,0 +1,43 @@
+{
+  "requires_login": true,
+  "auth": {
+    "base_url": "https://dev-next.mediastream.co",
+    "login_url": "https://dev-next.mediastream.co/login",
+    "client_id": "7738a22472548badd07c0380f284c753ecf94f0cf928c88bc1",
+    "social": {
+      "facebook": true,
+      "google": true,
+      "apple": true
+    }
+  },
+  "credentials": {
+    "email": "${TEST_USER_EMAIL}",
+    "password": "${TEST_USER_PASSWORD}"
+  },
+  "selectors": {
+    "email_field": "android=new UiSelector().className(\"android.widget.EditText\").instance(0)",
+    "password_field": "android=new UiSelector().className(\"android.widget.EditText\").instance(1)",
+    "submit_button": "android=new UiSelector().text(\"Ingresar\")"
+  },
+  "success_indicator": "Home",
+  "auth_tab": "Mi cuenta",
+  "login_indicators": [
+    "Ingresar ahora",
+    "Regístrate",
+    "Login",
+    "Sign up"
+  ],
+  "account_indicators": [
+    "Mis favoritos",
+    "Planes y PPV",
+    "Menú",
+    "Mi cuenta",
+    "Descargas",
+    "Favorites",
+    "Plans & PPV",
+    "Menu",
+    "My account",
+    "Downloads"
+  ],
+  "instructions": "Usar auth_tab para navegar a la sección de cuenta. En before(): tap auth_tab → si aparecen login_indicators → skip test. Si aparecen account_indicators → sesión activa → correr normal. Leer credenciales desde process.env.TEST_USER_EMAIL y TEST_USER_PASSWORD."
+}

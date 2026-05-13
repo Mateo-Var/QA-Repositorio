@@ -14,6 +14,7 @@
 - Android: Appium 2.x · UiAutomator2 · WebdriverIO 9.x · Mocha · Jest 29
 **Plataforma objetivo:**
 - Android: Xiaomi 24049RN28L vía USB ADB (serial: fy9tgmv4kbtox4mj · WiFi: 192.168.1.231:5555) · UiAutomator2
+- Android: Samsung SM-A536E Galaxy A53 5G (serial: R5CTB1W92KY · Android 16) · UiAutomator2
 **Apps bajo prueba:** `tvnPass` (Android). Cada app tiene su propio contexto, DOD y skills.
 **Modelo de ejecución:** Una app a la vez según el trigger. El `app_id` determina qué contexto y tests cargar.
 
@@ -229,7 +230,10 @@ await browser.pause(3000);
 // tests/wdio.conf.js — fragmento de capabilities
 {
   platformName:                    'Android',
-  'appium:udid':                   'fy9tgmv4kbtox4mj', // serial USB Xiaomi 24049RN28L (WiFi: 192.168.1.231:5555)
+  // Dispositivos registrados:
+  //   fy9tgmv4kbtox4mj  — Xiaomi 24049RN28L (WiFi: 192.168.1.231:5555)
+  //   R5CTB1W92KY       — Samsung SM-A536E Galaxy A53 5G (Android 16)
+  'appium:udid':                   process.env.ANDROID_DEVICE_NAME || 'fy9tgmv4kbtox4mj',
   'appium:deviceName':             'Android',
   'appium:appPackage':             'com.streann.tvnpass',
   'appium:appActivity':            'com.streann.tvnpass.MainActivity',

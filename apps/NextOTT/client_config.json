@@ -1,0 +1,239 @@
+{
+  "search_sample": "Show JJ Here",
+  "native": {
+    "android": {
+      "package":  "com.mediastream.next",
+      "activity": "com.mediastream.next.MainActivity",
+      "apk":      "com.mediastream.next-1.3.148-C5.3.5.apk"
+    }
+  },
+  "config": {
+    "version": "1.0.835",
+    "graph": {
+      "url": "https://dev-next.mediastream.co/graphql",
+      "headers": {
+        "x-client-id": "7738a22472548badd07c0380f284c753ecf94f0cf928c88bc1"
+      }
+    },
+    "social": {
+      "facebook": true,
+      "google": true,
+      "apple": true
+    },
+    "auth": {
+      "baseUrl": "https://dev-next.mediastream.co",
+      "getTokenURL": "https://dev-next.mediastream.co/login",
+      "recoverPasswordURL": "https://dev-next.mediastream.co/recover",
+      "clientID": "7738a22472548badd07c0380f284c753ecf94f0cf928c88bc1",
+      "viewOnLoginSuccess": "Home",
+      "viewOnRecoverPasswordSuccess": "Login",
+      "viewOnNetworkError": "Login",
+      "authSignupURL": "https://dev-next.mediastream.co/signup",
+      "errorNetworkMsg": "%network_error%",
+      "sessionNetworkTitle": "%title_session_expired%",
+      "sessionNetworkMsg": "%msg_session_expired%",
+      "sessionAlert": true
+    },
+    "language": {
+      "default": "es",
+      "available": ["es", "en"]
+    },
+    "hasSearch": true,
+    "hasDiscoverContent": true,
+    "hasRating": true,
+    "hasChannels": false,
+    "hasRadios": true,
+    "hasEpg": true,
+    "hasArticles": true,
+    "hasVideos": true,
+    "hasAudios": true,
+    "hasSports": true,
+    "hasProductGroups": true,
+    "hasContactSupport": true,
+    "hasOperators": false,
+    "hasRegister": true,
+    "requiredAuth": false,
+    "hasAuth": true,
+    "hasSubscription": false,
+    "hasTabFavorite": true,
+    "hasAboutTab": true,
+    "hasUpcomingSchedules": true,
+    "castEnable": true,
+    "registrationEnable": true,
+    "dynamicForm": true,
+    "features": {
+      "hasChat": true,
+      "hasDownload": true,
+      "oauthOnly": false,
+      "hasLivesInKeepWatching": true,
+      "hasCatchup": false
+    },
+    "screens": {
+      "Search": {
+        "components": [
+          {
+            "name": "SearchViewScreen",
+            "props": {
+              "advancedSearch": false
+            }
+          }
+        ]
+      },
+      "epg": {
+        "liveIds": [
+          "6985017e78adcbed3b8b4f17",
+          "67f01a4b608e625a0b04f7cc",
+          "6728f762df8a74a4fff095ad",
+          "64380c7680e3bb4bfe293326",
+          "60ddf64ddd3c930e4bb1d51b"
+        ]
+      }
+    },
+    "app": {
+      "ottName": "Dev Next"
+    },
+    "i18n": {
+      "es": {
+        "nav_home": "HOME",
+        "nav_live": "En Vivo",
+        "nav_favorites": "Mis favoritos",
+        "nav_plans": "Planes y PPV",
+        "nav_login": "Ingresar ahora",
+        "nav_signup": "Regístrate",
+        "nav_discover": "Navegar",
+        "nav_menu": "Menú",
+        "nav_search": "Buscar",
+        "nav_account": "Mi cuenta",
+        "nav_downloads": "Descargas"
+      },
+      "en": {
+        "nav_home": "Home",
+        "nav_live": "Live",
+        "nav_favorites": "Favorites",
+        "nav_plans": "Plans & PPV",
+        "nav_login": "Login",
+        "nav_signup": "Sign up",
+        "nav_discover": "Browse",
+        "nav_menu": "Menu",
+        "nav_search": "Search",
+        "nav_account": "My account",
+        "nav_downloads": "Downloads"
+      }
+    }
+  },
+  "navigator": [
+    {
+      "name": "EntryPoint",
+      "type": "switch",
+      "navigators": [
+        {
+          "name": "Splash",
+          "type": "screen",
+          "screen": "Splash"
+        },
+        {
+          "name": "Auth",
+          "type": "stack",
+          "navigators": [
+            { "name": "Login", "type": "screen", "screen": "Login" },
+            { "name": "SignUp", "type": "screen", "screen": "SignUp" },
+            { "name": "RecoverPassword", "type": "screen", "screen": "RecoverPassword" }
+          ]
+        },
+        {
+          "name": "AppContainer",
+          "type": "stack",
+          "navigators": [
+            {
+              "name": "TabMain",
+              "type": "tab",
+              "navigators": [
+                {
+                  "name": "AppRecommended",
+                  "type": "stack",
+                  "navigatorOptions": {
+                    "navigationOptions": {
+                      "title": "Inicio",
+                      "tabBarVisible": true
+                    }
+                  },
+                  "navigators": [
+                    { "name": "Home", "type": "screen", "screen": "Home" },
+                    { "name": "Details", "type": "screen", "screen": "Details" },
+                    { "name": "Category", "type": "screen", "screen": "Category" },
+                    { "name": "Lives", "type": "screen", "screen": "Lives" },
+                    { "name": "LiveRadio", "type": "screen", "screen": "LiveRadio" }
+                  ]
+                },
+                {
+                  "name": "AppDiscover",
+                  "type": "stack",
+                  "navigatorOptions": {
+                    "navigationOptions": {
+                      "title": "Explorar",
+                      "tabBarVisible": true
+                    }
+                  },
+                  "navigators": [
+                    { "name": "Discover", "type": "screen", "screen": "Discover" },
+                    { "name": "LiveEpg", "type": "screen", "screen": "LiveEpg" },
+                    { "name": "Podcasts", "type": "screen", "screen": "Podcasts" },
+                    { "name": "Series", "type": "screen", "screen": "Series" },
+                    { "name": "Category", "type": "screen", "screen": "Category" },
+                    { "name": "Lives", "type": "screen", "screen": "Lives" }
+                  ]
+                },
+                {
+                  "name": "SearchStack",
+                  "type": "stack",
+                  "navigatorOptions": {
+                    "navigationOptions": {
+                      "title": "Buscar",
+                      "tabBarVisible": true
+                    }
+                  },
+                  "navigators": [
+                    { "name": "Search", "type": "screen", "screen": "Search" },
+                    { "name": "Details", "type": "screen", "screen": "Details" }
+                  ]
+                },
+                {
+                  "name": "DownloadsStack",
+                  "type": "stack",
+                  "navigatorOptions": {
+                    "navigationOptions": {
+                      "title": "Descargas"
+                    }
+                  },
+                  "navigators": [
+                    { "name": "Downloads", "type": "screen", "screen": "Downloads" }
+                  ]
+                },
+                {
+                  "name": "AccountStack",
+                  "type": "stack",
+                  "navigatorOptions": {
+                    "navigationOptions": {
+                      "title": "Mi cuenta",
+                      "tabBarVisible": true
+                    }
+                  },
+                  "navigators": [
+                    { "name": "Account", "type": "screen", "screen": "Account" },
+                    { "name": "AccountDelete", "type": "screen", "screen": "AccountDelete" },
+                    { "name": "ContactSupport", "type": "screen", "screen": "ContactSupport" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Player",
+              "type": "screen",
+              "screen": "Player"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
